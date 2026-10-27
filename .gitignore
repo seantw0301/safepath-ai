@@ -1,0 +1,14 @@
+/vendor/
+.env
+/storage/*
+!/storage/.gitkeep
+/samples/**/*.mp4
+/samples/**/*.mov
+*.mp4
+*.mov
+*.wav
+*.m4a
+/helpers/samtool/.venv/
+__pycache__/
+.DS_Store
+._*

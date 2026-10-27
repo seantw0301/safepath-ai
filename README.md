@@ -1,0 +1,24 @@
+# SafePath AI
+
+Meta Global AI Developer Hackathon 2026 參賽作品（Indie Developer · Build for Your World）。
+
+> 手機繞家拍一圈 → SAM 3.1 找出並量測通行障礙 → Agent 產出改善工單與長照 2.0 居家無障礙補助申請草稿 → 施工後重拍驗證（紅 → 綠）。
+
+All code in this repository was written during the hackathon (from 2026-10-27).
+
+## 快速開始
+```bash
+scripts/install.sh
+scripts/dev.sh
+scripts/smoke.sh
+```
+
+## 文件
+- v1 架構：[docs/v1-architecture.md](docs/v1-architecture.md)
+- L1 Business：[docs/l1-business.md](docs/l1-business.md)
+- 十二層規劃：[L2](docs/l02-product.md) · [L3](docs/l03-ai-strategy.md) · [L4](docs/l04-workflow.md) · [L5](docs/l05-data-flow.md) · [L6](docs/l06-state-flow.md) · [L7](docs/l07-memory.md) · [L8](docs/l08-tool.md) · [L9](docs/l09-agent.md) · [L10](docs/l10-service.md) · [L11](docs/l11-event.md) · [L12](docs/l12-infrastructure.md)
+- 評分對照與風險：[docs/judging-and-risks.md](docs/judging-and-risks.md)
+- 日程：[docs/plan.md](docs/plan.md)
+
+## License
+MIT
