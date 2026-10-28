@@ -5,6 +5,7 @@ Called by the PHP worker; every command prints JSON to stdout.
   samtool.py parse   --media image|video --label L --out-dir D  < sam_output.txt
   samtool.py overlay --image IMG --objects a.json [b.json ...] --out OUT.png
   samtool.py measure --reference a4.json --objects x.json [...]
+  samtool.py path    --image IMG --floor floor.json [--doorway door.json] [--line x1,y1,x2,y2...] --objects x.json [...]
 """
 from __future__ import annotations
 
@@ -140,6 +141,82 @@ def measure(args: argparse.Namespace) -> dict:
     }
 
 
+def _corridor(size: tuple[int, int], floor: np.ndarray, door: dict | None, line: list[float] | None) -> np.ndarray:
+    """Walking corridor polygon: a user-drawn polyline, else bottom-centre of frame to the doorway's foot."""
+    w, h = size
+    img = Image.new("L", size, 0)
+    draw = ImageDraw.Draw(img)
+    if line:
+        pts = list(zip(line[0::2], line[1::2]))
+        draw.line(pts, fill=255, width=int(w * 0.18), joint="curve")
+    else:
+        ys, xs = np.nonzero(floor)
+        if door is not None:
+            l, _, r, b = door["bounds"]
+            top_l, top_r, top_y = l, r, b
+        else:  # no doorway: aim at the far end of the floor
+            top_y = int(ys.min())
+            row = xs[ys == top_y]
+            top_l, top_r = float(row.min()), float(row.max())
+        half = w * 0.2
+        cx = w / 2
+        draw.polygon([(cx - half, h), (cx + half, h), (top_r, top_y), (top_l, top_y)], fill=255)
+    # Objects occlude the floor mask, so fill each row between the floor's outer edges.
+    filled = np.zeros_like(floor)
+    for y in np.unique(np.nonzero(floor)[0]):
+        row = np.nonzero(floor[y])[0]
+        filled[y, row.min():row.max() + 1] = True
+    return (np.asarray(img) > 0) & filled
+
+
+def path(args: argparse.Namespace) -> dict:
+    img = Image.open(args.image)
+    size = img.size
+    floor_objs = json.loads(Path(args.floor).read_text())["objects"]
+    floor = np.zeros((size[1], size[0]), dtype=bool)
+    for o in floor_objs:
+        floor |= _full_mask(o, size)
+    door = None
+    if args.doorway:
+        doors = json.loads(Path(args.doorway).read_text())["objects"]
+        door = max(doors, key=lambda o: o["confidence"] or 0) if doors else None
+    line = [float(v) for v in args.line.split(",")] if args.line else None
+    corridor = _corridor(size, floor, door, line)
+
+    results = []
+    masks = []
+    for p in args.objects:
+        for obj in json.loads(Path(p).read_text())["objects"]:
+            m = _full_mask(obj, size)
+            masks.append(m)
+            area = int(m.sum())
+            if area == 0:
+                continue
+            overlap = int((m & corridor).sum()) / area
+            results.append({
+                "label": obj["label"],
+                "object_id": obj["object_id"],
+                "confidence": obj["confidence"],
+                "on_path_ratio": round(overlap, 3),
+                "verdict": "hazard" if overlap >= args.min_overlap else "noted",
+                "action": "清除或移位" if overlap >= args.min_overlap else "不在動線上，僅記錄",
+            })
+    if args.out:
+        canvas = np.asarray(img.convert("RGB")).astype(np.float32)
+        canvas[corridor] = canvas[corridor] * 0.6 + np.array([42, 157, 143]) * 0.4
+        for m, r in zip(masks, results):
+            color = np.array([230, 57, 70] if r["verdict"] == "hazard" else [160, 160, 160], dtype=np.float32)
+            canvas[m] = canvas[m] * 0.35 + color * 0.65
+        out = Image.fromarray(canvas.astype(np.uint8))
+        draw = ImageDraw.Draw(out)
+        for m, r in zip(masks, results):
+            ys, xs = np.nonzero(m)
+            tag = f'{r["label"]}: {"CLEAR" if r["verdict"] == "hazard" else "ok"}'
+            draw.text((int(xs.min()), max(0, int(ys.min()) - 14)), tag, fill=(255, 255, 255))
+        out.save(args.out)
+    return {"corridor_px": int(corridor.sum()), "objects": results, "overlay": args.out}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(prog="samtool")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -156,8 +233,16 @@ def main() -> int:
     m.add_argument("--image", required=True)
     m.add_argument("--reference", required=True)
     m.add_argument("--objects", nargs="+", default=[])
+    w = sub.add_parser("path")
+    w.add_argument("--image", required=True)
+    w.add_argument("--floor", required=True)
+    w.add_argument("--doorway")
+    w.add_argument("--line", help="user-drawn walking line: x1,y1,x2,y2,...")
+    w.add_argument("--objects", nargs="+", default=[])
+    w.add_argument("--min-overlap", type=float, default=0.15)
+    w.add_argument("--out")
     args = ap.parse_args()
-    result = {"parse": parse, "overlay": overlay, "measure": measure}[args.cmd](args)
+    result = {"parse": parse, "overlay": overlay, "measure": measure, "path": path}[args.cmd](args)
     print(json.dumps(result, ensure_ascii=False))
     return 0
 
