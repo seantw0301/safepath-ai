@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# One-shot install: PHP deps, samtool venv, .env, DB migration.
+# Local development install: PHP deps, samtool venv, .env, database.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 composer install
-[ -f .env ] || cp .env.example .env
+[ -f .env ] || { cp .env.example .env; chmod 600 .env; }
 python3.12 -m venv helpers/samtool/.venv
-helpers/samtool/.venv/bin/pip install -r helpers/samtool/requirements.txt
+helpers/samtool/.venv/bin/pip install -q -r helpers/samtool/requirements.txt
 php bin/migrate.php

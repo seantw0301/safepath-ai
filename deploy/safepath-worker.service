@@ -1,0 +1,17 @@
+# Copy to /etc/systemd/system/, adjust User and paths, then:
+#   systemctl enable --now safepath-worker
+[Unit]
+Description=SafePath AI job worker
+After=network.target mysql.service
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/safepath
+ExecStart=/usr/bin/php bin/worker.php
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,24 @@
+# Root install. Needs mod_rewrite. Replace the domain and path.
+<VirtualHost *:443>
+    ServerName safepath.example.com
+    DocumentRoot /var/www/safepath/public
+    LimitRequestBody 335544320
+    <Directory /var/www/safepath/public>
+        AllowOverride None
+        Require all granted
+        RewriteEngine On
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteRule ^ index.php [L]
+    </Directory>
+</VirtualHost>
+
+# Sub-path install instead, with APP_BASE_PATH=/safepath in .env:
+#
+# Alias /safepath /var/www/safepath/public
+# <Directory /var/www/safepath/public>
+#     Require all granted
+#     RewriteEngine On
+#     RewriteBase /safepath/
+#     RewriteCond %{REQUEST_FILENAME} !-f
+#     RewriteRule ^ index.php [L]
+# </Directory>

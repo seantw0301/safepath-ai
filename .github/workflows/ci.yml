@@ -1,0 +1,44 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DB_DRIVER: sqlite
+      PDF_FONT: /usr/share/fonts/truetype/arphic/uming.ttc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, gd, curl, mbstring
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install system packages
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-arphic-uming
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction
+          python -m venv helpers/samtool/.venv
+          helpers/samtool/.venv/bin/pip install -q -r helpers/samtool/requirements.txt
+      - name: Unit tests (PHP)
+        run: vendor/bin/phpunit
+      - name: Unit tests (measurement)
+        run: helpers/samtool/.venv/bin/python -m unittest tests/test_samtool.py
+      - name: Seed demos from the committed cache (no API key)
+        run: |
+          php bin/migrate.php
+          php bin/seed_demo.php
+      - name: Smoke test
+        run: |
+          php -S localhost:8080 -t public public/index.php &
+          sleep 2
+          scripts/smoke.sh
