@@ -4,6 +4,9 @@
   <label for="name"><?= $t('f_name') ?></label><input id="name" name="name" required maxlength="100">
   <label for="mobility"><?= $t('f_mobility') ?></label>
   <select id="mobility" name="mobility"><?php foreach (['independent', 'walker', 'wheelchair'] as $m): ?><option value="<?= $m ?>"><?= $t("m_$m") ?></option><?php endforeach; ?></select>
+  <label><?= $t('voice') ?></label>
+  <button class="btn" type="button" id="rec" style="background:#fff;color:var(--brand);border:1px solid var(--brand)"><?= $t('voice_start') ?></button>
+  <span class="muted small" id="heard" role="status"><?= $t('voice_hint') ?></span>
   <label for="level"><?= $t('f_level') ?></label>
   <select id="level" name="ltc_level"><?php for ($i = 1; $i <= 8; $i++): ?><option value="<?= $i ?>" <?= $i === 4 ? 'selected' : '' ?>><?= $t('level') ?> <?= $i ?></option><?php endfor; ?></select>
   <label for="status"><?= $t('f_status') ?></label>
@@ -14,6 +17,38 @@
 </form>
 <script>
 const BASE = <?= json_encode(\SafePath\Http\Url::base()) ?>;
+let recorder = null;
+document.getElementById('rec').addEventListener('click', async (e) => {
+  const button = e.target, heard = document.getElementById('heard');
+  if (recorder) { recorder.stop(); return; }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({audio: true});
+  } catch {
+    heard.textContent = <?= json_encode($t('voice_no_mic')) ?>;
+    return;
+  }
+  const chunks = [];
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = (d) => chunks.push(d.data);
+  recorder.onstop = async () => {
+    stream.getTracks().forEach((track) => track.stop());
+    recorder = null;
+    button.textContent = <?= json_encode($t('voice_start')) ?>;
+    heard.textContent = <?= json_encode($t('voice_busy')) ?>;
+    const body = new FormData();
+    body.append('audio', new Blob(chunks, {type: chunks[0]?.type}), 'voice');
+    const res = await (await fetch(BASE + '/api/voice', {method: 'POST', body})).json();
+    if (res.mobility) {
+      document.getElementById('mobility').value = res.mobility;
+      heard.textContent = <?= json_encode($t('voice_heard')) ?> + ' ' + res.transcript;
+    } else {
+      heard.textContent = <?= json_encode($t('voice_failed')) ?> + ' ' + (res.error || 'error');
+    }
+  };
+  recorder.start();
+  button.textContent = <?= json_encode($t('voice_stop')) ?>;
+});
 document.getElementById('f').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msg = document.getElementById('msg'), els = e.target.elements;

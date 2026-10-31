@@ -15,6 +15,7 @@ final class Api
 {
     private const MAX_PHOTOS = 12;
     private const MAX_VIDEO_BYTES = 300 * 1024 * 1024;
+    private const MAX_AUDIO_BYTES = 32 * 1024 * 1024;
 
     private static function refused(): bool
     {
@@ -190,32 +191,64 @@ final class Api
         Response::json(['ok' => true]);
     }
 
-    /** Family describes the resident by voice; audio is transcribed and discarded, only the mobility fact is kept. */
+    /** Family describes how the resident moves: the audio is transcribed and discarded, only the text and mobility come back. */
+    public static function voiceProfile(): void
+    {
+        if (self::refused()) {
+            return;
+        }
+        $profile = self::readVoice();
+        if ($profile !== null) {
+            Response::json($profile);
+        }
+    }
+
     public static function voice(array $p): void
     {
         if (self::refused()) {
             return;
         }
+        $profile = self::readVoice();
+        if ($profile !== null) {
+            Db::pdo()->prepare('UPDATE households SET mobility = ? WHERE id = ?')->execute([$profile['mobility'], (int) $p['id']]);
+            Response::json($profile);
+        }
+    }
+
+    /** @return array{transcript: string, mobility: string}|null null when it has already answered with an error */
+    private static function readVoice(): ?array
+    {
         $file = $_FILES['audio']['tmp_name'] ?? '';
         if ($file === '' || !is_uploaded_file($file)) {
             Response::json(['error' => 'audio_required'], 422);
-            return;
+            return null;
+        }
+        if ($_FILES['audio']['size'] > self::MAX_AUDIO_BYTES) {
+            Response::json(['error' => 'audio_too_large'], 422);
+            return null;
         }
         $meta = new MetaClient();
         $text = $meta->transcribe($file);
-        $profile = $meta->sparkJson(
-            'Extract how the resident moves around their home from what the family said. Do not give health advice. Use "independent" if they walk unaided.',
+        if (trim($text) === '') {
+            Response::json(['error' => 'no_speech_heard'], 422);
+            return null;
+        }
+        $out = $meta->sparkJson(
+            'From what the family said, extract how the resident moves around their home. Use "independent" if they walk unaided. '
+            . 'Also return the same words as transcript: if they are Chinese, write them in Traditional Chinese (Taiwan), otherwise leave them unchanged. Do not add or remove anything. Do not give health advice.',
             $text,
-            'profile',
+            'voice_profile',
             [
                 'type' => 'object',
-                'properties' => ['mobility' => ['type' => 'string', 'enum' => ['independent', 'walker', 'wheelchair']]],
-                'required' => ['mobility'],
+                'properties' => [
+                    'mobility' => ['type' => 'string', 'enum' => ['independent', 'walker', 'wheelchair']],
+                    'transcript' => ['type' => 'string'],
+                ],
+                'required' => ['mobility', 'transcript'],
                 'additionalProperties' => false,
             ]
         );
-        Db::pdo()->prepare('UPDATE households SET mobility = ? WHERE id = ?')->execute([$profile['mobility'], (int) $p['id']]);
-        Response::json(['transcript' => $text, 'mobility' => $profile['mobility']]);
+        return ['transcript' => $out['transcript'], 'mobility' => $out['mobility']];
     }
 
     /** @return string|null the uploaded file's path, an error code, or null when no video was sent */

@@ -28,6 +28,7 @@ if [ "${JUDGE_MODE:-0}" = "1" ]; then
 else
   check household-needs-name 422 -X POST "$BASE/api/households"
   check scan-needs-photos 422 -X POST "$BASE/api/households/1/scans"
+  check voice-needs-audio 422 -X POST "$BASE/api/voice"
 fi
 curl -fsS "$BASE/api/scans/$SCAN/report" | grep -q '"hazards"' && echo "ok   report-has-hazards"
 echo "all smoke checks passed"

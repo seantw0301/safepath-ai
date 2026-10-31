@@ -37,6 +37,8 @@ jobs:
         run: |
           php bin/migrate.php
           php bin/seed_demo.php
+      - name: Agent hands a false positive to a person
+        run: php scripts/check_false_positive.php
       - name: Smoke test
         run: |
           php -S localhost:8080 -t public public/index.php &

@@ -24,6 +24,7 @@ $router->add('GET', '/api/scans/{id}/work-orders', Api::workOrders(...));
 $router->add('POST', '/api/scans/{id}/verify', Api::verify(...));
 $router->add('PATCH', '/api/hazards/{id}', Api::overrideHazard(...));
 $router->add('POST', '/api/households/{id}/voice', Api::voice(...));
+$router->add('POST', '/api/voice', static fn () => Api::voiceProfile());
 
 $router->add('GET', '/', static fn () => Web::home());
 $router->add('GET', '/new', static fn () => Web::newScan());

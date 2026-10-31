@@ -71,6 +71,14 @@ final class I18n
         'uploading' => ['Uploading…', '上傳中…'],
         'no_upload' => ['Could not upload:', '無法上傳：'],
         'pick_file' => ['Choose a video or at least one photo.', '請選擇影片或至少一張照片。'],
+        'voice' => ['Or say it', '或用說的'],
+        'voice_start' => ['🎤 Record', '🎤 開始錄音'],
+        'voice_stop' => ['■ Stop', '■ 停止'],
+        'voice_hint' => ['For example: "My father uses a walker at home." Audio is transcribed, then not kept.', '例如：「我爸爸在家都用助行器。」錄音轉成文字後不會保留。'],
+        'voice_busy' => ['Listening to the recording…', '辨識中…'],
+        'voice_heard' => ['Heard:', '聽到：'],
+        'voice_failed' => ['Could not understand that:', '無法辨識：'],
+        'voice_no_mic' => ['Microphone not available here (it needs HTTPS and permission).', '無法使用麥克風（需要 HTTPS 與授權）。'],
         'not_found' => ['Scan not found', '找不到這次掃描'],
     ];
 

@@ -23,7 +23,7 @@ final class CaseAgent
 You prepare home-accessibility paperwork for a family and a long-term-care case manager in Taiwan.
 Work through your tools:
 1. Call get_hazards.
-2. For any hazard with confidence below 0.7, call inspect_photo before relying on it. If the photo clearly shows it is not a real hazard, call flag_for_review.
+2. Call inspect_photo on every hazard before relying on it: the detector can be confident and still wrong, for example a sticker or picture of a shoe. If is_real is false, call flag_for_review instead of writing a work order.
 3. Call measure and lookup_subsidy for hazards with action "construct".
 4. Call draft_work_order once for every remaining hazard, including those with action "clear" (they take no subsidy code).
 5. Call finish.
@@ -116,7 +116,7 @@ TXT;
         $crop = $this->crop($h);
         return $this->meta->sparkVisionJson(
             'You look at a crop of a home photo for an accessibility check. Judge only what is visible. No health advice.',
-            sprintf('Our detector labelled this "%s". Is that what this is, and is it really there? %s', $h['name'], (string) ($args['question'] ?? '')),
+            sprintf('Our detector labelled this "%s". Is that a real physical object or condition here, not a picture, sticker, reflection or shadow of one? %s', $h['name'], (string) ($args['question'] ?? '')),
             [$crop],
             'inspection',
             [
@@ -154,8 +154,8 @@ TXT;
         if ($reason === '') {
             throw new RuntimeException('a reason is required');
         }
-        Db::pdo()->prepare("UPDATE hazards SET level = 'unknown', status = 'unknown', note_en = ? WHERE id = ?")
-            ->execute(['Agent asked for a human check: ' . $reason, $h['id']]);
+        Db::pdo()->prepare("UPDATE hazards SET level = 'unknown', status = 'unknown', note = ?, note_en = ? WHERE id = ?")
+            ->execute(['Agent 請人工確認：' . $reason, 'Agent asked for a human check: ' . $reason, $h['id']]);
         $this->drafted[$h['id']] = true; // needs a person, not a work order
         return ['ok' => true, 'level' => 'unknown'];
     }
