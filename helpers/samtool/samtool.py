@@ -258,6 +258,7 @@ def annotate(args: argparse.Namespace) -> dict:
     out = Image.fromarray(canvas.astype(np.uint8))
     draw = ImageDraw.Draw(out)
     font = ImageFont.load_default(size=max(18, img.size[0] // 60))
+    placed: list[tuple[float, float, float, float]] = []
     for item in spec["items"]:
         if not item.get("bounds"):
             continue
@@ -265,9 +266,15 @@ def annotate(args: argparse.Namespace) -> dict:
         color = LEVEL_COLORS[item["level"]]
         draw.rectangle([left, top, right, bottom], outline=color, width=3)
         box = draw.textbbox((left, top), item["tag"], font=font)
-        y = max(0, top - (box[3] - box[1]) - 10)
-        draw.rectangle([left, y, left + (box[2] - box[0]) + 12, y + (box[3] - box[1]) + 10], fill=color)
-        draw.text((left + 6, y + 2), item["tag"], fill=(255, 255, 255), font=font)
+        tag_w, tag_h = box[2] - box[0] + 12, box[3] - box[1] + 10
+        x = min(left, img.size[0] - tag_w)
+        y = max(0, top - tag_h)
+        # Stack tags downward so neighbouring hazards stay readable.
+        while any(x < r and x + tag_w > l and y < b and y + tag_h > t for l, t, r, b in placed):
+            y += tag_h + 2
+        placed.append((x, y, x + tag_w, y + tag_h))
+        draw.rectangle([x, y, x + tag_w, y + tag_h], fill=color)
+        draw.text((x + 6, y + 2), item["tag"], fill=(255, 255, 255), font=font)
     out.save(args.out, quality=88)
     return {"out": args.out}
 

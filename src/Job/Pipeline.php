@@ -222,7 +222,7 @@ final class Pipeline
         $q = $pdo->prepare('SELECT parent_scan_id FROM scans WHERE id = ?');
         $q->execute([$scanId]);
         $parentId = (int) $q->fetchColumn();
-        $before = $pdo->prepare("SELECT * FROM hazards WHERE scan_id = ? AND level IN ('red', 'yellow')");
+        $before = $pdo->prepare("SELECT * FROM hazards WHERE scan_id = ? AND level IN ('red', 'yellow', 'unknown')");
         $before->execute([$parentId]);
         $after = $pdo->prepare("SELECT * FROM hazards WHERE scan_id = ? AND level IN ('red', 'yellow', 'unknown')");
         $after->execute([$scanId]);
@@ -237,7 +237,7 @@ final class Pipeline
                     break;
                 }
             }
-            $status = $still === null ? 'verified_fixed' : 'still_open';
+            $status = $still === null ? 'verified_fixed' : ($still['level'] === 'unknown' ? 'unknown' : 'still_open');
             $check = null;
             // A construction fix must be seen, not just inferred from a missed detection.
             if ($still === null && $h['action'] === 'construct') {
@@ -251,7 +251,7 @@ final class Pipeline
                 };
             }
             $fixed += $status === 'verified_fixed' ? 1 : 0;
-            $after = ['verified_fixed' => 'green', 'unknown' => 'unknown'][$status] ?? ($still['level'] ?? 'red');
+            $after = ['verified_fixed' => 'green', 'unknown' => 'unknown'][$status] ?? ($still['level'] ?? 'red'); // a Spark "not fixed" has no re-detected hazard
             $pdo->prepare('UPDATE hazards SET status = ? WHERE id = ?')->execute([$status, $h['id']]);
             $results[] = ['hazard_id' => (int) $h['id'], 'room' => $h['room'], 'name' => $h['name'], 'before' => $h['level'], 'after' => $after, 'status' => $status, 'confirmation' => $check['evidence'] ?? null];
         }

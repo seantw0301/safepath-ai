@@ -148,6 +148,16 @@ final class MetaClient
         return $dir . '/' . sha1($key) . '.' . $ext;
     }
 
+    public function transcribe(string $path, string $filename): string
+    {
+        $this->guard->reserve('transcribe');
+        $res = $this->request('/asr/transcribe', [
+            'model' => Env::get('META_TRANSCRIBE_MODEL', 'muse-voice-transcribe-1.0'),
+            'file' => new \CURLFile($path, null, $filename),
+        ], false);
+        return (string) ($res['text'] ?? '');
+    }
+
     private function outputText(array $res): string
     {
         $text = '';
