@@ -1,0 +1,128 @@
+CREATE TABLE IF NOT EXISTS households (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  mobility TEXT NOT NULL DEFAULT 'independent',
+  ltc_level INTEGER NOT NULL DEFAULT 4,
+  ltc_category INTEGER NOT NULL DEFAULT 3,
+  notes TEXT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS scans (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  household_id INTEGER NOT NULL,
+  parent_scan_id INTEGER NULL,
+  status TEXT NOT NULL DEFAULT 'created',
+  video_path TEXT NULL,
+  simulated INTEGER NOT NULL DEFAULT 0,
+  is_demo INTEGER NOT NULL DEFAULT 0,
+  summary_json TEXT NULL,
+  error TEXT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS frames (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  scan_id INTEGER NOT NULL,
+  idx INT NOT NULL,
+  path TEXT NOT NULL,
+  blurred_path TEXT NULL,
+  overlay_path TEXT NULL,
+  room TEXT NULL,
+  px_per_cm REAL NULL,
+  scale_source TEXT NULL,
+  UNIQUE (scan_id, idx)
+);
+
+CREATE TABLE IF NOT EXISTS tracks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  scan_id INTEGER NOT NULL,
+  sam_object_id INT NOT NULL,
+  label TEXT NOT NULL,
+  best_frame_idx INT NULL,
+  confidence REAL NULL
+);
+
+CREATE TABLE IF NOT EXISTS hazards (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  scan_id INTEGER NOT NULL,
+  track_id INTEGER NULL,
+  frame_idx INT NOT NULL DEFAULT 0,
+  room TEXT NULL,
+  type TEXT NOT NULL,
+  name TEXT NULL,
+  action TEXT NULL,
+  bounds_json TEXT NULL,
+  note TEXT NULL,
+  value_cm REAL NULL,
+  error_cm REAL NULL,
+  level TEXT NOT NULL,
+  rule_id TEXT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  evidence_json TEXT NULL
+);
+
+CREATE TABLE IF NOT EXISTS work_orders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  scan_id INTEGER NOT NULL,
+  hazard_id INTEGER NOT NULL,
+  item TEXT NOT NULL,
+  location TEXT NULL,
+  spec_json TEXT NULL,
+  kind TEXT NOT NULL DEFAULT 'construct',
+  text TEXT NULL,
+  text_en TEXT NULL,
+  subsidy_code TEXT NULL
+);
+
+CREATE TABLE IF NOT EXISTS subsidy_packages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  scan_id INTEGER NOT NULL,
+  pack_version TEXT NOT NULL,
+  items_json TEXT NOT NULL,
+  copay_json TEXT NULL,
+  pdf_path TEXT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  scan_id INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  payload_json TEXT NULL,
+  status TEXT NOT NULL DEFAULT 'queued',
+  attempt INT NOT NULL DEFAULT 0,
+  run_after TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  heartbeat_at TEXT NULL,
+  error TEXT NULL
+);
+
+CREATE TABLE IF NOT EXISTS scan_steps (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  scan_id INTEGER NOT NULL,
+  agent TEXT NULL,
+  tool TEXT NOT NULL,
+  input_json TEXT NULL,
+  output_json TEXT NULL,
+  ms INT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS model_usage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  scan_id INTEGER NULL,
+  model TEXT NOT NULL,
+  units INT NOT NULL DEFAULT 0,
+  cache_hit INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS hazard_overrides (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  hazard_id INTEGER NOT NULL,
+  old_level TEXT NOT NULL,
+  new_level TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

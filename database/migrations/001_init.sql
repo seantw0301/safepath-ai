@@ -2,6 +2,8 @@ CREATE TABLE IF NOT EXISTS households (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   mobility ENUM('independent','walker','wheelchair') NOT NULL DEFAULT 'independent',
+  ltc_level TINYINT NOT NULL DEFAULT 4,
+  ltc_category TINYINT NOT NULL DEFAULT 3,
   notes TEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -12,7 +14,9 @@ CREATE TABLE IF NOT EXISTS scans (
   parent_scan_id BIGINT UNSIGNED NULL,
   status ENUM('created','uploaded','rejected','segmenting','measuring','assessing','needs_reshoot','report_ready','verifying','verified','partially_verified','failed') NOT NULL DEFAULT 'created',
   video_path VARCHAR(255) NULL,
-  px_per_cm DECIMAL(10,4) NULL,
+  simulated TINYINT(1) NOT NULL DEFAULT 0,
+  is_demo TINYINT(1) NOT NULL DEFAULT 0,
+  summary_json JSON NULL,
   error TEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -25,6 +29,10 @@ CREATE TABLE IF NOT EXISTS frames (
   idx INT NOT NULL,
   path VARCHAR(255) NOT NULL,
   blurred_path VARCHAR(255) NULL,
+  overlay_path VARCHAR(255) NULL,
+  room VARCHAR(100) NULL,
+  px_per_cm DECIMAL(10,4) NULL,
+  scale_source VARCHAR(20) NULL,
   UNIQUE KEY (scan_id, idx)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -42,7 +50,13 @@ CREATE TABLE IF NOT EXISTS hazards (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   scan_id BIGINT UNSIGNED NOT NULL,
   track_id BIGINT UNSIGNED NULL,
+  frame_idx INT NOT NULL DEFAULT 0,
+  room VARCHAR(100) NULL,
   type VARCHAR(50) NOT NULL,
+  name VARCHAR(100) NULL,
+  action VARCHAR(20) NULL,
+  bounds_json JSON NULL,
+  note TEXT NULL,
   value_cm DECIMAL(8,2) NULL,
   error_cm DECIMAL(8,2) NULL,
   level ENUM('red','yellow','green','unknown') NOT NULL,
@@ -59,7 +73,10 @@ CREATE TABLE IF NOT EXISTS work_orders (
   item VARCHAR(100) NOT NULL,
   location VARCHAR(100) NULL,
   spec_json JSON NULL,
+  kind VARCHAR(20) NOT NULL DEFAULT 'construct',
   text TEXT NULL,
+  text_en TEXT NULL,
+  subsidy_code VARCHAR(10) NULL,
   KEY (scan_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

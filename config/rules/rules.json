@@ -1,0 +1,8 @@
+{
+  "version": "2026-10-31",
+  "disclaimer": "Reference values for home screening, taken from the public-building accessibility code; not a professional assessment. Pending check against the current official text.",
+  "source": "建築物無障礙設施設計規範（內政部）條號經地方政府檢查表轉引：206.1 高低差超過 3 公分應設坡道；206.2.3 高差 0.5–3 公分坡度 1/2；室內出入口淨寬 ≥ 80 公分",
+  "threshold": {"bevel_over_cm": 0.5, "ramp_over_cm": 3.0},
+  "doorway": {"min_clear_cm": 80, "sanity_min_cm": 50},
+  "path": {"min_overlap": 0.15}
+}

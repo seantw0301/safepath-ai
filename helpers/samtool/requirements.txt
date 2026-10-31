@@ -1,3 +1,4 @@
 meta-sam-parser==0.1.0
 pillow
 numpy
+reportlab

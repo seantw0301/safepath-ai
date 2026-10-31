@@ -1,16 +1,70 @@
 {
-  "version": "2026-10-28",
-  "note": "SAM 3.1 text prompts per hazard class. Prefer generic nouns: 'cable' hits where 'extension cord' missed (M1).",
+  "version": "2026-10-31",
+  "note": "SAM 3.1 noun-phrase prompts per class. Generic nouns hit more often ('cable' found what 'extension cord' missed).",
+  "min_confidence": 0.5,
   "classes": {
-    "threshold":    {"action": "construct", "prompts": ["door threshold", "door sill", "step"]},
-    "rug":          {"action": "fix_or_remove", "prompts": ["rug", "mat", "carpet"]},
-    "cable":        {"action": "clear", "prompts": ["cable", "power cord", "extension cord"]},
-    "wet_floor":    {"action": "construct", "prompts": ["wet floor", "puddle", "bathroom floor"]},
-    "grab_bar":     {"action": "check_presence", "prompts": ["grab bar", "handrail", "towel bar"]},
-    "doorway":      {"action": "measure", "prompts": ["doorway", "door frame", "door"]},
-    "floor_clutter": {"action": "clear", "prompts": ["shoes on the floor", "box on the floor", "bag on the floor", "clutter on the floor", "object on the floor", "flower pot", "slippers"]},
-    "floor":        {"action": "path_base", "prompts": ["floor"]},
-    "reference":    {"action": "scale", "prompts": ["white paper"]},
-    "person":       {"action": "blur", "prompts": ["person"]}
-  }
+    "floor": {
+      "prompts": [
+        "floor"
+      ]
+    },
+    "doorway": {
+      "prompts": [
+        "doorway"
+      ]
+    },
+    "threshold": {
+      "prompts": [
+        "door threshold"
+      ]
+    },
+    "rug": {
+      "prompts": [
+        "rug"
+      ]
+    },
+    "cable": {
+      "prompts": [
+        "cable"
+      ]
+    },
+    "clutter": {
+      "prompts": [
+        "shoes on the floor",
+        "slippers",
+        "box on the floor",
+        "bag on the floor",
+        "flower pot"
+      ]
+    },
+    "wet_floor": {
+      "prompts": [
+        "puddle"
+      ]
+    },
+    "toilet": {
+      "prompts": [
+        "toilet"
+      ]
+    },
+    "grab_bar": {
+      "prompts": [
+        "grab bar"
+      ]
+    },
+    "reference": {
+      "prompts": [
+        "white paper"
+      ]
+    },
+    "person": {
+      "prompts": [
+        "person"
+      ]
+    }
+  },
+  "fallback_prompts": [
+    "object on the floor",
+    "clutter on the floor"
+  ]
 }

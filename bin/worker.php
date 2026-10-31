@@ -3,10 +3,15 @@
 declare(strict_types=1);
 
 use SafePath\Infra\Env;
+use SafePath\Job\Worker;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 Env::load(__DIR__ . '/../.env');
 
-// TODO(M0): poll jobs table, dispatch to SafePath\Job\Handler\*
-fwrite(STDERR, "worker: not implemented yet\n");
+$worker = new Worker();
+while (true) {
+    if (!$worker->runOne()) {
+        sleep(1);
+    }
+}

@@ -1,0 +1,39 @@
+<?php
+
+declare(strict_types=1);
+
+// Builds the pre-processed demo scans from samples/scenes (SIMULATED) through the real pipeline.
+// SAM and Muse Spark answers are cached in samples/cache, so reruns cost nothing.
+
+use SafePath\Infra\Db;
+use SafePath\Infra\Env;
+use SafePath\Job\Worker;
+use SafePath\Scans;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+Env::load(__DIR__ . '/../.env');
+
+$dir = __DIR__ . '/../samples/scenes';
+$manifest = json_decode((string) file_get_contents("$dir/manifest.json"), true)['scenes'];
+$photos = static function (string $phase) use ($manifest, $dir): array {
+    $out = [];
+    foreach ($manifest as $key => $scene) {
+        $out[] = ['path' => "$dir/{$key}_{$phase}.jpg", 'room' => $scene['room'], 'px_per_cm' => $scene['px_per_cm']];
+    }
+    return $out;
+};
+
+Db::pdo()->exec('DELETE FROM scans WHERE is_demo = 1');
+$worker = new Worker();
+foreach ([['Demo home A (walker)', 'walker', 4, 3], ['Demo home B (wheelchair)', 'wheelchair', 6, 2]] as [$name, $mobility, $level, $category]) {
+    $home = Scans::createHousehold($name, $mobility, $level, $category);
+    $before = Scans::create($home, $photos('before'), null, true, true);
+    $worker->drain();
+    $after = Scans::create($home, $photos('after'), $before, true, true);
+    $worker->drain();
+    foreach ([$before, $after] as $id) {
+        $scan = Scans::get($id);
+        echo sprintf("scan %d %s %s%s\n", $id, $name, $scan['status'], $scan['error'] ? ' ERROR: ' . $scan['error'] : '');
+    }
+}

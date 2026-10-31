@@ -9,7 +9,8 @@ require __DIR__ . '/../vendor/autoload.php';
 
 Env::load(__DIR__ . '/../.env');
 
-$files = glob(__DIR__ . '/../database/migrations/*.sql');
+$dir = __DIR__ . '/../database/migrations' . (Db::driver() === 'sqlite' ? '/sqlite' : '');
+$files = glob($dir . '/*.sql');
 sort($files);
 foreach ($files as $file) {
     Db::pdo()->exec(file_get_contents($file));

@@ -6,16 +6,20 @@ Called by the PHP worker; every command prints JSON to stdout.
   samtool.py overlay --image IMG --objects a.json [b.json ...] --out OUT.png
   samtool.py measure --reference a4.json --objects x.json [...]
   samtool.py path    --image IMG --floor floor.json [--doorway door.json] [--line x1,y1,x2,y2...] --objects x.json [...]
+  samtool.py blur    --image IMG --objects person.json --out OUT.jpg
+  samtool.py annotate --image IMG --spec spec.json --out OUT.jpg
+  samtool.py pdf     --spec pack.json --out OUT.pdf
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from meta_sam_parser import (
     SegmentationBoxRecord,
     SegmentationMaskRecord,
@@ -70,7 +74,8 @@ def _full_mask(obj: dict, size: tuple[int, int]) -> np.ndarray:
     local = Image.open(obj["mask"]).resize((max(1, right - left), max(1, bottom - top)), Image.NEAREST)
     full = np.zeros((h, w), dtype=bool)
     arr = np.asarray(local) > 127
-    full[top:top + arr.shape[0], left:left + arr.shape[1]] = arr[: h - top, : w - left]
+    arr = arr[: h - top, : w - left]
+    full[top:top + arr.shape[0], left:left + arr.shape[1]] = arr
     return full
 
 
@@ -214,7 +219,122 @@ def path(args: argparse.Namespace) -> dict:
             tag = f'{r["label"]}: {"CLEAR" if r["verdict"] == "hazard" else "ok"}'
             draw.text((int(xs.min()), max(0, int(ys.min()) - 14)), tag, fill=(255, 255, 255))
         out.save(args.out)
+    if args.corridor_out:
+        Image.fromarray((corridor * 255).astype(np.uint8)).save(args.corridor_out)
     return {"corridor_px": int(corridor.sum()), "objects": results, "overlay": args.out}
+
+
+def blur(args: argparse.Namespace) -> dict:
+    """Blur every person so evidence frames never show a face."""
+    img = Image.open(args.image).convert("RGB")
+    objects = []
+    for p in args.objects:
+        objects += json.loads(Path(p).read_text())["objects"]
+    if objects:
+        mask = np.zeros((img.size[1], img.size[0]), dtype=bool)
+        for obj in objects:
+            mask |= _full_mask(obj, img.size)
+        blurred = img.filter(ImageFilter.GaussianBlur(radius=max(img.size) // 40))
+        img = Image.composite(blurred, img, Image.fromarray((mask * 255).astype(np.uint8)))
+    img.save(args.out, quality=90)
+    return {"out": args.out, "people": len(objects)}
+
+
+LEVEL_COLORS = {"red": (230, 57, 70), "yellow": (255, 183, 3), "green": (42, 157, 143), "unknown": (160, 160, 160)}
+
+
+def annotate(args: argparse.Namespace) -> dict:
+    """Draw the walking corridor, hazard masks and short tags on an evidence frame."""
+    img = Image.open(args.image).convert("RGB")
+    spec = json.loads(Path(args.spec).read_text())
+    canvas = np.asarray(img).astype(np.float32)
+    if spec.get("corridor"):
+        m = np.asarray(Image.open(spec["corridor"])) > 127
+        canvas[m] = canvas[m] * 0.65 + np.array([69, 123, 157]) * 0.35
+    for item in spec["items"]:
+        if item.get("mask"):
+            m = _full_mask(item, img.size)
+            canvas[m] = canvas[m] * 0.4 + np.array(LEVEL_COLORS[item["level"]], dtype=np.float32) * 0.6
+    out = Image.fromarray(canvas.astype(np.uint8))
+    draw = ImageDraw.Draw(out)
+    font = ImageFont.load_default(size=max(18, img.size[0] // 60))
+    for item in spec["items"]:
+        if not item.get("bounds"):
+            continue
+        left, top, right, bottom = item["bounds"]
+        color = LEVEL_COLORS[item["level"]]
+        draw.rectangle([left, top, right, bottom], outline=color, width=3)
+        box = draw.textbbox((left, top), item["tag"], font=font)
+        y = max(0, top - (box[3] - box[1]) - 10)
+        draw.rectangle([left, y, left + (box[2] - box[0]) + 12, y + (box[3] - box[1]) + 10], fill=color)
+        draw.text((left + 6, y + 2), item["tag"], fill=(255, 255, 255), font=font)
+    out.save(args.out, quality=88)
+    return {"out": args.out}
+
+
+def pdf(args: argparse.Namespace) -> dict:
+    """Render the subsidy draft with an embedded CJK font (so any viewer shows it), else the MSung CID font."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.platypus import Image as RLImage, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    font_path = os.environ.get("PDF_FONT", "/System/Library/Fonts/Supplemental/Arial Unicode.ttf")
+    if os.path.isfile(font_path):
+        font = "SafePathCJK"
+        pdfmetrics.registerFont(TTFont(font, font_path))
+    else:
+        font = "MSung-Light"
+        pdfmetrics.registerFont(UnicodeCIDFont(font))
+    body = ParagraphStyle("b", fontName=font, fontSize=10, leading=15, wordWrap="CJK")
+    small = ParagraphStyle("s", parent=body, fontSize=8, leading=12, textColor=colors.grey)
+    head = ParagraphStyle("h", parent=body, fontSize=13, leading=20, spaceBefore=10, spaceAfter=4)
+    title = ParagraphStyle("t", parent=body, fontSize=18, leading=26, spaceAfter=6)
+    warn = ParagraphStyle("w", parent=body, textColor=colors.HexColor("#b00020"))
+
+    spec = json.loads(Path(args.spec).read_text())
+    story = [Paragraph(spec["title"], title)]
+    for line in spec.get("warnings", []):
+        story.append(Paragraph(line, warn))
+    story.append(Spacer(1, 6))
+    for label, value in spec["applicant"]:
+        story.append(Paragraph(f"{label}：{value}", body))
+
+    story.append(Paragraph("一、申請品項（草稿）", head))
+    rows = [[Paragraph(h, body) for h in ["代碼", "品項", "位置／量測", "給付上限（元）", "自付試算（元）"]]]
+    for r in spec["items"]:
+        rows.append([Paragraph(str(c), body) for c in r])
+    table = Table(rows, colWidths=[1.5 * cm, 6.2 * cm, 4.6 * cm, 2.2 * cm, 2.2 * cm], repeatRows=1)
+    table.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    story.append(table)
+    story.append(Spacer(1, 6))
+    for line in spec.get("totals", []):
+        story.append(Paragraph(line, body))
+
+    story.append(Paragraph("二、現場證據", head))
+    for e in spec.get("evidence", []):
+        with Image.open(e["path"]) as im:
+            ratio = im.size[1] / im.size[0]
+        story.append(Paragraph(e["caption"], body))
+        story.append(RLImage(e["path"], width=14 * cm, height=14 * cm * ratio))
+        story.append(Spacer(1, 6))
+
+    story.append(Paragraph("三、申請前檢查清單", head))
+    for line in spec.get("checklist", []):
+        story.append(Paragraph("□ " + line, body))
+    story.append(Paragraph("四、法規依據", head))
+    for line in spec.get("citations", []):
+        story.append(Paragraph(line, small))
+    SimpleDocTemplate(args.out, pagesize=A4, leftMargin=1.6 * cm, rightMargin=1.6 * cm, topMargin=1.5 * cm, bottomMargin=1.5 * cm).build(story)
+    return {"out": args.out}
 
 
 def main() -> int:
@@ -241,8 +361,21 @@ def main() -> int:
     w.add_argument("--objects", nargs="+", default=[])
     w.add_argument("--min-overlap", type=float, default=0.15)
     w.add_argument("--out")
+    w.add_argument("--corridor-out")
+    b = sub.add_parser("blur")
+    b.add_argument("--image", required=True)
+    b.add_argument("--objects", nargs="*", default=[])
+    b.add_argument("--out", required=True)
+    n = sub.add_parser("annotate")
+    n.add_argument("--image", required=True)
+    n.add_argument("--spec", required=True)
+    n.add_argument("--out", required=True)
+    d = sub.add_parser("pdf")
+    d.add_argument("--spec", required=True)
+    d.add_argument("--out", required=True)
     args = ap.parse_args()
-    result = {"parse": parse, "overlay": overlay, "measure": measure, "path": path}[args.cmd](args)
+    handlers = {"parse": parse, "overlay": overlay, "measure": measure, "path": path, "blur": blur, "annotate": annotate, "pdf": pdf}
+    result = handlers[args.cmd](args)
     print(json.dumps(result, ensure_ascii=False))
     return 0
 

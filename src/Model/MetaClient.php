@@ -17,10 +17,14 @@ final class MetaClient
     /** Segment one image with a text prompt; returns the raw SAM output text (frame lines). */
     public function samImage(string $imagePath, string $prompt): string
     {
+        $cache = $this->cachePath('sam', sha1_file($imagePath) . '|' . $prompt, 'txt');
+        if (is_file($cache)) {
+            return (string) file_get_contents($cache);
+        }
         $mime = mime_content_type($imagePath) ?: 'image/jpeg';
         $dataUrl = 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($imagePath));
         $this->guard->reserve('sam_image');
-        return $this->outputText($this->post('/responses', [
+        $out = $this->outputText($this->post('/responses', [
             'model' => Env::get('META_SAM_MODEL', 'sam-3.1'),
             'input' => [[
                 'type' => 'message',
@@ -32,6 +36,8 @@ final class MetaClient
             ]],
             'metadata' => ['include_confidence' => 'true', 'mask_encoding' => 'one_bit'],
         ]));
+        file_put_contents($cache, $out);
+        return $out;
     }
 
     /** Segment and track a prompt across an uploaded video (file_id from uploadFile). */
@@ -57,6 +63,89 @@ final class MetaClient
         $this->guard->reserve('upload');
         $res = $this->request('/files', ['purpose' => 'user_data', 'file' => new \CURLFile($path)], false);
         return $res['id'] ?? throw new RuntimeException('upload failed: no id');
+    }
+
+    /** Generate one image; returns raw bytes. */
+    public function imageGenerate(string $prompt): string
+    {
+        $this->guard->reserve('image');
+        $res = $this->post('/images/generations', ['model' => 'muse-image-1.0', 'prompt' => $prompt, 'n' => 1]);
+        return base64_decode($res['data'][0]['b64_json'] ?? throw new RuntimeException('no image returned'));
+    }
+
+    /** Edit an image while keeping its composition; returns raw bytes. */
+    public function imageEdit(string $imagePath, string $prompt): string
+    {
+        $mime = mime_content_type($imagePath) ?: 'image/jpeg';
+        $dataUrl = 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($imagePath));
+        $this->guard->reserve('image');
+        $res = $this->post('/images/edits', [
+            'model' => 'muse-image-1.0',
+            'prompt' => $prompt,
+            'images' => [['image_url' => $dataUrl]],
+            'n' => 1,
+        ]);
+        return base64_decode($res['data'][0]['b64_json'] ?? throw new RuntimeException('no image returned'));
+    }
+
+    /** Ask Muse Spark for JSON matching a strict schema. */
+    public function sparkJson(string $system, string $user, string $name, array $schema): array
+    {
+        $cache = $this->cachePath('spark', $system . '|' . $user . '|' . json_encode($schema), 'json');
+        if (is_file($cache)) {
+            return json_decode((string) file_get_contents($cache), true);
+        }
+        $this->guard->reserve('spark');
+        $res = $this->post('/responses', [
+            'model' => Env::get('META_SPARK_MODEL', 'muse-spark-1.3'),
+            'instructions' => $system,
+            'input' => $user,
+            'text' => ['format' => ['type' => 'json_schema', 'name' => $name, 'schema' => $schema, 'strict' => true]],
+        ]);
+        $json = json_decode($this->outputText($res), true);
+        if (!is_array($json)) {
+            throw new RuntimeException('muse spark returned non-JSON output');
+        }
+        file_put_contents($cache, json_encode($json, JSON_UNESCAPED_UNICODE));
+        return $json;
+    }
+
+    /** Same as sparkJson, with images the model looks at. */
+    public function sparkVisionJson(string $system, string $user, array $imagePaths, string $name, array $schema): array
+    {
+        $hashes = implode('|', array_map('sha1_file', $imagePaths));
+        $cache = $this->cachePath('spark', $system . '|' . $user . '|' . $hashes . '|' . json_encode($schema), 'json');
+        if (is_file($cache)) {
+            return json_decode((string) file_get_contents($cache), true);
+        }
+        $content = [['type' => 'input_text', 'text' => $user]];
+        foreach ($imagePaths as $path) {
+            $mime = mime_content_type($path) ?: 'image/jpeg';
+            $content[] = ['type' => 'input_image', 'image_url' => 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($path))];
+        }
+        $this->guard->reserve('spark');
+        $res = $this->post('/responses', [
+            'model' => Env::get('META_SPARK_MODEL', 'muse-spark-1.3'),
+            'instructions' => $system,
+            'input' => [['type' => 'message', 'role' => 'user', 'content' => $content]],
+            'text' => ['format' => ['type' => 'json_schema', 'name' => $name, 'schema' => $schema, 'strict' => true]],
+        ]);
+        $json = json_decode($this->outputText($res), true);
+        if (!is_array($json)) {
+            throw new RuntimeException('muse spark returned non-JSON output');
+        }
+        file_put_contents($cache, json_encode($json, JSON_UNESCAPED_UNICODE));
+        return $json;
+    }
+
+    /** Responses are cached by content hash, so reruns and the demo cost nothing. */
+    private function cachePath(string $kind, string $key, string $ext): string
+    {
+        $dir = dirname(__DIR__, 2) . '/samples/cache/' . $kind;
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+        return $dir . '/' . sha1($key) . '.' . $ext;
     }
 
     private function outputText(array $res): string
