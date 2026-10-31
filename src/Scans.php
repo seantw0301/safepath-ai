@@ -94,7 +94,7 @@ final class Scans
             'hazards' => $hazards,
             'work_orders' => self::rows('SELECT * FROM work_orders WHERE scan_id = ? ORDER BY id', [$id]),
             'subsidy' => $pack === null ? null : json_decode((string) $pack['items_json'], true),
-            'steps' => self::rows('SELECT agent, tool, output_json, ms FROM scan_steps WHERE scan_id = ? ORDER BY id', [$id]),
+            'steps' => self::rows('SELECT agent, tool, input_json, output_json, ms FROM scan_steps WHERE scan_id = ? ORDER BY id', [$id]),
             'verify_scan' => self::rows('SELECT id, status FROM scans WHERE parent_scan_id = ? ORDER BY id DESC LIMIT 1', [$id])[0] ?? null,
         ];
     }

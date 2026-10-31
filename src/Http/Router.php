@@ -17,6 +17,7 @@ final class Router
 
     public function dispatch(string $method, string $path): void
     {
+        $path = Url::strip($path);
         foreach ($this->routes as [$m, $regex, $handler]) {
             if ($m === $method && preg_match($regex, $path, $match)) {
                 $params = array_filter($match, 'is_string', ARRAY_FILTER_USE_KEY);

@@ -14,9 +14,40 @@ use SafePath\Scans;
 final class Api
 {
     private const MAX_PHOTOS = 12;
+    private const MAX_VIDEO_BYTES = 300 * 1024 * 1024;
+
+    private static function refused(): bool
+    {
+        $why = Access::uploadRefusal();
+        if ($why !== null) {
+            Response::json(['error' => $why], $why === 'daily_upload_limit_reached' ? 429 : 403);
+            return true;
+        }
+        return false;
+    }
+
+    /** Returns the scan if this visitor may see it; otherwise answers 404. */
+    private static function visible(int $id): ?array
+    {
+        $scan = Scans::get($id);
+        if ($scan === null || !Access::canView($scan)) {
+            Response::json(['error' => 'scan_not_found'], 404);
+            return null;
+        }
+        return $scan;
+    }
+
+    private static function created(int $scanId): void
+    {
+        Access::remember($scanId);
+        Response::json(['id' => $scanId], 201);
+    }
 
     public static function createHousehold(): void
     {
+        if (self::refused()) {
+            return;
+        }
         $in = $_POST ?: (json_decode((string) file_get_contents('php://input'), true) ?? []);
         $name = trim((string) ($in['name'] ?? ''));
         if ($name === '') {
@@ -34,6 +65,9 @@ final class Api
 
     public static function createScan(array $p): void
     {
+        if (self::refused()) {
+            return;
+        }
         $home = (int) $p['id'];
         if (Scans::rows('SELECT id FROM households WHERE id = ?', [$home]) === []) {
             Response::json(['error' => 'household_not_found'], 404);
@@ -43,7 +77,7 @@ final class Api
         if ($video !== null) {
             is_string($video) && !is_file($video)
                 ? Response::json(['error' => $video], 422)
-                : Response::json(['id' => Scans::createFromVideo($home, $video)], 201);
+                : self::created(Scans::createFromVideo($home, $video));
             return;
         }
         $photos = self::uploadedPhotos();
@@ -51,14 +85,20 @@ final class Api
             Response::json(['error' => $photos], 422);
             return;
         }
-        Response::json(['id' => Scans::create($home, $photos)], 201);
+        self::created(Scans::create($home, $photos));
     }
 
     public static function verify(array $p): void
     {
-        $parent = Scans::get((int) $p['id']);
+        if (self::refused()) {
+            return;
+        }
+        $parent = self::visible((int) $p['id']);
         if ($parent === null) {
-            Response::json(['error' => 'scan_not_found'], 404);
+            return;
+        }
+        if ($parent['is_demo']) {
+            Response::json(['error' => 'demo_is_read_only'], 403);
             return;
         }
         if ($parent['status'] !== 'report_ready') {
@@ -69,7 +109,7 @@ final class Api
         if ($video !== null) {
             is_string($video) && !is_file($video)
                 ? Response::json(['error' => $video], 422)
-                : Response::json(['id' => Scans::createFromVideo((int) $parent['household_id'], $video, (int) $parent['id'], (bool) $parent['simulated'])], 201);
+                : self::created(Scans::createFromVideo((int) $parent['household_id'], $video, (int) $parent['id'], (bool) $parent['simulated']));
             return;
         }
         $photos = self::uploadedPhotos();
@@ -82,14 +122,13 @@ final class Api
             $photos[$i]['room'] = $rooms[$i]['room'] ?? $photo['room'];
             $photos[$i]['px_per_cm'] = ($rooms[$i]['scale_source'] ?? null) === 'simulated' ? (float) $rooms[$i]['px_per_cm'] : null;
         }
-        Response::json(['id' => Scans::create((int) $parent['household_id'], $photos, (int) $parent['id'], (bool) $parent['simulated'])], 201);
+        self::created(Scans::create((int) $parent['household_id'], $photos, (int) $parent['id'], (bool) $parent['simulated']));
     }
 
     public static function status(array $p): void
     {
-        $scan = Scans::get((int) $p['id']);
+        $scan = self::visible((int) $p['id']);
         if ($scan === null) {
-            Response::json(['error' => 'scan_not_found'], 404);
             return;
         }
         $steps = Scans::rows('SELECT COUNT(*) AS n FROM scan_steps WHERE scan_id = ?', [$scan['id']])[0]['n'];
@@ -98,17 +137,24 @@ final class Api
 
     public static function report(array $p): void
     {
-        $report = Scans::report((int) $p['id']);
-        $report === null ? Response::json(['error' => 'scan_not_found'], 404) : Response::json($report);
+        if (self::visible((int) $p['id']) !== null) {
+            Response::json(Scans::report((int) $p['id']));
+        }
     }
 
     public static function workOrders(array $p): void
     {
+        if (self::visible((int) $p['id']) === null) {
+            return;
+        }
         Response::json(Scans::rows('SELECT * FROM work_orders WHERE scan_id = ? ORDER BY id', [(int) $p['id']]));
     }
 
     public static function packPdf(array $p): void
     {
+        if (self::visible((int) $p['id']) === null) {
+            return;
+        }
         $rows = Scans::rows('SELECT pdf_path FROM subsidy_packages WHERE scan_id = ?', [(int) $p['id']]);
         if ($rows === [] || !is_file(Pipeline::root() . '/' . $rows[0]['pdf_path'])) {
             Response::json(['error' => 'pack_not_ready'], 404);
@@ -129,9 +175,13 @@ final class Api
             Response::json(['error' => 'level_and_reason_required'], 422);
             return;
         }
-        $rows = Scans::rows('SELECT level FROM hazards WHERE id = ?', [(int) $p['id']]);
+        $rows = Scans::rows('SELECT level, scan_id FROM hazards WHERE id = ?', [(int) $p['id']]);
         if ($rows === []) {
             Response::json(['error' => 'hazard_not_found'], 404);
+            return;
+        }
+        if (!Access::canEdit(Scans::get((int) $rows[0]['scan_id']))) {
+            Response::json(['error' => 'read_only'], 403);
             return;
         }
         Db::pdo()->prepare('INSERT INTO hazard_overrides (hazard_id, old_level, new_level, reason) VALUES (?, ?, ?, ?)')
@@ -143,6 +193,9 @@ final class Api
     /** Family describes the resident by voice; audio is transcribed and discarded, only the mobility fact is kept. */
     public static function voice(array $p): void
     {
+        if (self::refused()) {
+            return;
+        }
         $file = $_FILES['audio']['tmp_name'] ?? '';
         if ($file === '' || !is_uploaded_file($file)) {
             Response::json(['error' => 'audio_required'], 422);
@@ -174,6 +227,9 @@ final class Api
         }
         if ($file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
             return 'upload_failed';
+        }
+        if ($file['size'] > self::MAX_VIDEO_BYTES) {
+            return 'video_too_large';
         }
         $type = mime_content_type($file['tmp_name']);
         return in_array($type, ['video/mp4', 'video/quicktime'], true) ? $file['tmp_name'] : 'video_must_be_mp4_or_mov';

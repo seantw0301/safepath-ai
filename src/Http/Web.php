@@ -13,21 +13,25 @@ final class Web
     public static function home(): void
     {
         $demos = Scans::rows('SELECT s.id, s.status, h.name, h.mobility FROM scans s JOIN households h ON h.id = s.household_id WHERE s.is_demo = 1 AND s.parent_scan_id IS NULL ORDER BY s.id', []);
-        $recent = Scans::rows('SELECT s.id, s.status, s.created_at, h.name FROM scans s JOIN households h ON h.id = s.household_id WHERE s.is_demo = 0 AND s.parent_scan_id IS NULL ORDER BY s.id DESC LIMIT 10', []);
+        $recent = Access::judgeMode() ? [] : Scans::rows('SELECT s.id, s.status, s.created_at, h.name FROM scans s JOIN households h ON h.id = s.household_id WHERE s.is_demo = 0 AND s.parent_scan_id IS NULL ORDER BY s.id DESC LIMIT 10', []);
         self::render('home', compact('demos', 'recent'));
     }
 
     public static function newScan(): void
     {
+        if (!Access::liveUploads()) {
+            header('Location: ' . Url::to('/'));
+            return;
+        }
         self::render('new', []);
     }
 
     public static function scan(array $p): void
     {
         $report = Scans::report((int) $p['id']);
-        if ($report === null) {
+        if ($report === null || !Access::canView($report['scan'])) {
             http_response_code(404);
-            echo 'Scan not found';
+            echo I18n::t('not_found');
             return;
         }
         $verify = null;
@@ -46,7 +50,8 @@ final class Web
             return;
         }
         $file = Pipeline::scanDir((int) $p['id']) . '/' . $rel;
-        if (!is_file($file)) {
+        $scan = Scans::get((int) $p['id']);
+        if ($scan === null || !Access::canView($scan) || !is_file($file)) {
             http_response_code(404);
             return;
         }
