@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS scans (
   parent_scan_id INTEGER NULL,
   status TEXT NOT NULL DEFAULT 'created',
   video_path TEXT NULL,
+  video_frames INTEGER NULL,
   simulated INTEGER NOT NULL DEFAULT 0,
   is_demo INTEGER NOT NULL DEFAULT 0,
   summary_json TEXT NULL,
@@ -30,6 +31,7 @@ CREATE TABLE IF NOT EXISTS frames (
   blurred_path TEXT NULL,
   overlay_path TEXT NULL,
   room TEXT NULL,
+  source_frame INTEGER NULL,
   px_per_cm REAL NULL,
   scale_source TEXT NULL,
   UNIQUE (scan_id, idx)

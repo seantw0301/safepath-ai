@@ -12,8 +12,9 @@ CREATE TABLE IF NOT EXISTS scans (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   household_id BIGINT UNSIGNED NOT NULL,
   parent_scan_id BIGINT UNSIGNED NULL,
-  status ENUM('created','uploaded','rejected','segmenting','measuring','assessing','needs_reshoot','report_ready','verifying','verified','partially_verified','failed') NOT NULL DEFAULT 'created',
+  status ENUM('created','uploaded','preparing','rejected','segmenting','measuring','assessing','needs_reshoot','report_ready','verifying','verified','partially_verified','failed') NOT NULL DEFAULT 'created',
   video_path VARCHAR(255) NULL,
+  video_frames INT NULL,
   simulated TINYINT(1) NOT NULL DEFAULT 0,
   is_demo TINYINT(1) NOT NULL DEFAULT 0,
   summary_json JSON NULL,
@@ -31,6 +32,7 @@ CREATE TABLE IF NOT EXISTS frames (
   blurred_path VARCHAR(255) NULL,
   overlay_path VARCHAR(255) NULL,
   room VARCHAR(100) NULL,
+  source_frame INT NULL,
   px_per_cm DECIMAL(10,4) NULL,
   scale_source VARCHAR(20) NULL,
   UNIQUE KEY (scan_id, idx)
@@ -61,7 +63,7 @@ CREATE TABLE IF NOT EXISTS hazards (
   error_cm DECIMAL(8,2) NULL,
   level ENUM('red','yellow','green','unknown') NOT NULL,
   rule_id VARCHAR(50) NULL,
-  status ENUM('open','work_ordered','fixed_claimed','verified_fixed','still_open','unknown') NOT NULL DEFAULT 'open',
+  status ENUM('open','noted','work_ordered','fixed_claimed','verified_fixed','still_open','unknown') NOT NULL DEFAULT 'open',
   evidence_json JSON NULL,
   KEY (scan_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

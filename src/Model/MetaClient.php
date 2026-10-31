@@ -10,6 +10,9 @@ use SafePath\Infra\Env;
 /** Thin client for Meta Model API (https://api.meta.ai/v1). The key is read from .env only and never logged. */
 final class MetaClient
 {
+    /** @var array<string, string> video path => uploaded file id */
+    private array $uploadedFiles = [];
+
     public function __construct(private UsageGuard $guard = new UsageGuard())
     {
     }
@@ -40,11 +43,16 @@ final class MetaClient
         return $out;
     }
 
-    /** Segment and track a prompt across an uploaded video (file_id from uploadFile). */
-    public function samVideo(string $fileId, string $prompt, int $frames): string
+    /** Segment and track a prompt across a video; object IDs stay stable between frames. */
+    public function samVideo(string $videoPath, string $prompt, int $frames): string
     {
+        $cache = $this->cachePath('sam', sha1_file($videoPath) . '|' . $prompt, 'txt');
+        if (is_file($cache)) {
+            return (string) file_get_contents($cache);
+        }
+        $fileId = $this->uploadedFiles[$videoPath] ??= $this->uploadFile($videoPath);
         $this->guard->reserve('sam_frame', max(50, $frames)); // billed with a 50-frame minimum
-        return $this->outputText($this->post('/responses', [
+        $out = $this->outputText($this->post('/responses', [
             'model' => Env::get('META_SAM_MODEL', 'sam-3.1'),
             'input' => [[
                 'type' => 'message',
@@ -56,6 +64,8 @@ final class MetaClient
             ]],
             'metadata' => ['include_confidence' => 'true', 'mask_encoding' => 'one_bit'],
         ]));
+        file_put_contents($cache, $out);
+        return $out;
     }
 
     public function uploadFile(string $path): string

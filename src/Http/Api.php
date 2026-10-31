@@ -39,6 +39,13 @@ final class Api
             Response::json(['error' => 'household_not_found'], 404);
             return;
         }
+        $video = self::uploadedVideo();
+        if ($video !== null) {
+            is_string($video) && !is_file($video)
+                ? Response::json(['error' => $video], 422)
+                : Response::json(['id' => Scans::createFromVideo($home, $video)], 201);
+            return;
+        }
         $photos = self::uploadedPhotos();
         if (is_string($photos)) {
             Response::json(['error' => $photos], 422);
@@ -52,6 +59,13 @@ final class Api
         $parent = Scans::get((int) $p['id']);
         if ($parent === null) {
             Response::json(['error' => 'scan_not_found'], 404);
+            return;
+        }
+        $video = self::uploadedVideo();
+        if ($video !== null) {
+            is_string($video) && !is_file($video)
+                ? Response::json(['error' => $video], 422)
+                : Response::json(['id' => Scans::createFromVideo((int) $parent['household_id'], $video, (int) $parent['id'], (bool) $parent['simulated'])], 201);
             return;
         }
         $photos = self::uploadedPhotos();
@@ -145,6 +159,20 @@ final class Api
         );
         Db::pdo()->prepare('UPDATE households SET mobility = ? WHERE id = ?')->execute([$profile['mobility'], (int) $p['id']]);
         Response::json(['transcript' => $text, 'mobility' => $profile['mobility']]);
+    }
+
+    /** @return string|null the uploaded file's path, an error code, or null when no video was sent */
+    private static function uploadedVideo(): ?string
+    {
+        $file = $_FILES['video'] ?? null;
+        if ($file === null || is_array($file['tmp_name']) || $file['error'] === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+        if ($file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
+            return 'upload_failed';
+        }
+        $type = mime_content_type($file['tmp_name']);
+        return in_array($type, ['video/mp4', 'video/quicktime'], true) ? $file['tmp_name'] : 'video_must_be_mp4_or_mov';
     }
 
     /** @return array<int, array{path: string, room: string, px_per_cm: ?float}>|string */

@@ -99,10 +99,15 @@ $media = static fn (int $sid, int $idx, string $f = 'overlay') => "/media/$sid?f
   </table></div>
 <?php else: ?>
   <form id="v" class="card">
-    <p class="muted">Take the same photos again, one per room.</p>
-    <?php foreach ($report['frames'] as $f): ?>
-      <label><?= $e($f['room']) ?></label><input type="file" name="photos[]" accept="image/jpeg,image/png" required>
-    <?php endforeach; ?>
+    <?php if ($scan['video_path'] !== null): ?>
+      <p class="muted">Walk the same route again.</p>
+      <label>Re-shoot video 重拍影片</label><input type="file" name="video" accept="video/mp4,video/quicktime" required>
+    <?php else: ?>
+      <p class="muted">Take the same photos again, one per room.</p>
+      <?php foreach ($report['frames'] as $f): ?>
+        <label><?= $e($f['room']) ?></label><input type="file" name="photos[]" accept="image/jpeg,image/png" required>
+      <?php endforeach; ?>
+    <?php endif; ?>
     <p><button class="btn" type="submit">Verify 開始驗證</button> <span id="vm" class="muted"></span></p>
   </form>
   <script>

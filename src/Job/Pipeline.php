@@ -8,14 +8,22 @@ use RuntimeException;
 use SafePath\Agent\PaperworkAgent;
 use SafePath\Agent\VerifyAgent;
 use SafePath\Infra\Db;
+use SafePath\Infra\Env;
 use SafePath\Model\MetaClient;
 use SafePath\Rules\RuleEngine;
+use SafePath\Scans;
 use SafePath\Subsidy\SubsidyPack;
 use SafePath\Vision\SamTool;
 
 /** segment → measure → assess → paperwork | verify. Each stage saves its result, so a failure resumes there. */
 final class Pipeline
 {
+    private const VIDEO_FPS = 3;
+    private const VIDEO_MAX_SECONDS = 60;
+    private const VIDEO_KEYFRAMES = 6;
+    private const VIDEO_ROOM = 'Walkthrough';
+    private const VIDEO_EVERY_FRAME = ['floor', 'doorway', 'toilet', 'grab_bar', 'reference', 'person'];
+
     private array $config;
 
     public function __construct(private MetaClient $meta = new MetaClient())
@@ -36,6 +44,7 @@ final class Pipeline
     public function stage(string $type, int $scanId): ?string
     {
         return match ($type) {
+            'prepare' => $this->prepare($scanId),
             'segment' => $this->segment($scanId),
             'measure' => $this->measure($scanId),
             'assess' => $this->assess($scanId),
@@ -63,11 +72,106 @@ final class Pipeline
             ->execute([$scanId, $agent, $tool, json_encode($input, JSON_UNESCAPED_UNICODE), json_encode($output, JSON_UNESCAPED_UNICODE), (int) ((microtime(true) - $since) * 1000)]);
     }
 
+    /** Video: re-encode to a low frame rate (SAM bills per frame) and pull evenly spaced evidence frames. */
+    private function prepare(int $scanId): string
+    {
+        $this->setStatus($scanId, 'preparing');
+        $scan = Scans::get($scanId);
+        $dir = self::scanDir($scanId);
+        $source = self::root() . '/' . $scan['video_path'];
+        $video = "$dir/walk.mp4";
+        $this->ffmpeg(['-i', $source, '-t', (string) self::VIDEO_MAX_SECONDS, '-vf', 'fps=' . self::VIDEO_FPS . ",scale='min(1280,iw)':-2", '-an', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', $video]);
+        $this->ffmpeg(['-i', $video, '-fps_mode', 'passthrough', "$dir/photos/%d.jpg"]);
+        $files = glob("$dir/photos/*.jpg");
+        $count = count($files);
+        if ($count === 0) {
+            throw new RuntimeException('no frames could be read from this video');
+        }
+        $step = max(1, (int) ceil($count / self::VIDEO_KEYFRAMES));
+        $idx = 0;
+        // ffmpeg numbers images from 1, SAM numbers frames from 0.
+        for ($n = 0; $n < $count; $n += $step) {
+            Db::pdo()->prepare('INSERT INTO frames (scan_id, idx, path, room, source_frame) VALUES (?, ?, ?, ?, ?)')
+                ->execute([$scanId, $idx++, sprintf('storage/scans/%d/photos/%d.jpg', $scanId, $n + 1), self::VIDEO_ROOM, $n]);
+        }
+        Db::pdo()->prepare('UPDATE scans SET video_frames = ? WHERE id = ?')->execute([$count, $scanId]);
+        return 'segment';
+    }
+
+    private function ffmpeg(array $args): void
+    {
+        $cmd = implode(' ', array_map('escapeshellarg', array_merge([(string) Env::get('FFMPEG_BIN', 'ffmpeg'), '-y', '-loglevel', 'error'], $args)));
+        exec($cmd . ' 2>&1', $out, $code);
+        if ($code !== 0) {
+            throw new RuntimeException('could not read this video');
+        }
+    }
+
+    /** One SAM video call per prompt, then each tracked object is reported once, on the frame where it looks largest. */
+    private function segmentVideo(int $scanId, array $scan, array $frames, float $min): void
+    {
+        $video = self::scanDir($scanId) . '/walk.mp4';
+        $keep = implode(',', array_column($frames, 'source_frame'));
+        $byFrame = array_column($frames, 'idx', 'source_frame');
+        $maskDir = self::scanDir($scanId) . '/det/masks';
+        @mkdir($maskDir, 0775, true);
+        foreach ($frames as $f) {
+            @mkdir(self::scanDir($scanId) . '/det/' . $f['idx'], 0775, true);
+        }
+        foreach ($this->config['classes'] as $class => $def) {
+            $perFrame = array_fill_keys(array_column($frames, 'idx'), []);
+            foreach ($def['prompts'] as $prompt) {
+                $t = microtime(true);
+                $raw = $this->meta->samVideo($video, $prompt, (int) $scan['video_frames']);
+                $label = (string) preg_replace('/\W+/', '_', $prompt);
+                $parsed = SamTool::run('parse', ['media' => 'video', 'label' => $label, 'out-dir' => $maskDir, 'keep-frames' => $keep], $raw);
+                $found = array_values(array_filter($parsed['objects'], static fn ($o) => ($o['confidence'] ?? 0) >= $min));
+                // Scene context must exist on every frame; hazards should appear only once.
+                $objects = in_array($class, self::VIDEO_EVERY_FRAME, true) ? $found : $this->largestPerTrack($found);
+                $this->step($scanId, 'sam_track', ['prompt' => $prompt], ['tracks' => count(array_unique(array_column($found, 'object_id')))], $t);
+                foreach ($objects as $o) {
+                    $idx = $byFrame[$o['frame']];
+                    $o['frame'] = 0; // overlay/measure treat each evidence frame as a single image
+                    foreach ($perFrame[$idx] as $m) {
+                        if ($this->iou($o['bounds'], $m['bounds']) > 0.5) {
+                            continue 2;
+                        }
+                    }
+                    $perFrame[$idx][] = $o;
+                }
+            }
+            foreach ($perFrame as $idx => $objects) {
+                file_put_contents(self::scanDir($scanId) . "/det/$idx/$class.json", json_encode(['objects' => $objects]));
+            }
+        }
+        foreach ($frames as $f) {
+            $dir = self::scanDir($scanId) . '/det/' . $f['idx'];
+            SamTool::run('blur', ['image' => self::root() . '/' . $f['path'], 'objects' => ["$dir/person.json"], 'out' => "$dir/blurred.jpg"]);
+            Db::pdo()->prepare('UPDATE frames SET blurred_path = ? WHERE id = ?')->execute([$this->rel("$dir/blurred.jpg"), $f['id']]);
+        }
+    }
+
+    private function largestPerTrack(array $objects): array
+    {
+        $best = [];
+        foreach ($objects as $o) {
+            if (!isset($best[$o['object_id']]) || $o['area_px'] > $best[$o['object_id']]['area_px']) {
+                $best[$o['object_id']] = $o;
+            }
+        }
+        return array_values($best);
+    }
+
     /** SAM per class and prompt; results land in det/<frame>/<class>.json with duplicates merged. */
     private function segment(int $scanId): string
     {
         $this->setStatus($scanId, 'segmenting');
         $min = (float) $this->config['min_confidence'];
+        $scan = Scans::get($scanId);
+        if ($scan['video_path'] !== null) {
+            $this->segmentVideo($scanId, $scan, $this->frames($scanId), $min);
+            return 'measure';
+        }
         foreach ($this->frames($scanId) as $frame) {
             $dir = self::scanDir($scanId) . '/det/' . $frame['idx'];
             @mkdir($dir . '/masks', 0775, true);
@@ -155,6 +259,9 @@ final class Pipeline
         $q->execute([$scanId]);
         $scan = $q->fetch();
         $pdo->prepare('DELETE FROM hazards WHERE scan_id = ?')->execute([$scanId]);
+        $isVideo = Scans::get($scanId)['video_path'] !== null;
+        $grabBarSeen = $isVideo && $this->anyDetected($scanId, 'grab_bar');
+        $grabBarReported = false;
         foreach ($this->frames($scanId) as $frame) {
             $dir = self::scanDir($scanId) . '/det/' . $frame['idx'];
             $detections = $this->loadDetections($dir);
@@ -164,6 +271,17 @@ final class Pipeline
             }
             $t = microtime(true);
             $hazards = $engine->evaluate($detections, $scale, $scan['mobility']);
+            if ($isVideo) {
+                // One walkthrough, one finding: a bar seen anywhere counts, and a missing bar is reported once.
+                $hazards = array_values(array_filter($hazards, static function ($h) use ($grabBarSeen, &$grabBarReported) {
+                    if ($h['type'] !== 'grab_bar') {
+                        return true;
+                    }
+                    $keep = !$grabBarSeen && !$grabBarReported;
+                    $grabBarReported = true;
+                    return $keep;
+                }));
+            }
             $spec = ['items' => [], 'corridor' => is_file("$dir/corridor.png") ? "$dir/corridor.png" : null];
             foreach ($hazards as $h) {
                 $pdo->prepare('INSERT INTO hazards (scan_id, frame_idx, room, type, name, action, value_cm, level, status, note, bounds_json, evidence_json)
@@ -182,6 +300,17 @@ final class Pipeline
             $this->step($scanId, 'rules_check', ['frame' => $frame['idx'], 'mobility' => $scan['mobility'], 'px_per_cm' => $scale], ['levels' => array_count_values(array_column($hazards, 'level'))], $t);
         }
         return $scan['parent_scan_id'] === null ? 'paperwork' : 'verify';
+    }
+
+    private function anyDetected(int $scanId, string $class): bool
+    {
+        foreach ($this->frames($scanId) as $frame) {
+            $file = self::scanDir($scanId) . '/det/' . $frame['idx'] . "/$class.json";
+            if (json_decode((string) file_get_contents($file), true)['objects'] !== []) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function loadDetections(string $dir): array
@@ -229,11 +358,17 @@ final class Pipeline
         $remaining = $after->fetchAll();
         $results = [];
         $fixed = 0;
+        $used = [];
+        $isVideo = Scans::get($scanId)['video_path'] !== null;
         foreach ($before->fetchAll() as $h) {
             $still = null;
             foreach ($remaining as $r) {
-                if ($r['type'] === $h['type'] && $r['room'] === $h['room'] && ($h['type'] === 'grab_bar' || $this->iou(json_decode($h['bounds_json'], true), json_decode($r['bounds_json'], true)) > 0.1)) {
+                $samePlace = $isVideo
+                    ? $r['name'] === $h['name'] && !in_array($r['id'], $used, true) // the camera moves, so positions cannot be compared
+                    : $r['room'] === $h['room'] && ($h['type'] === 'grab_bar' || $this->iou(json_decode($h['bounds_json'], true), json_decode($r['bounds_json'], true)) > 0.1);
+                if ($r['type'] === $h['type'] && $samePlace) {
                     $still = $r;
+                    $used[] = $r['id'];
                     break;
                 }
             }

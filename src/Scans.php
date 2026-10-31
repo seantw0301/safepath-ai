@@ -45,6 +45,21 @@ final class Scans
         return $scanId;
     }
 
+    /** Walkthrough video: frames are created by the 'prepare' job. */
+    public static function createFromVideo(int $householdId, string $videoPath, ?int $parentId = null, bool $simulated = false, bool $demo = false): int
+    {
+        $pdo = Db::pdo();
+        $pdo->prepare("INSERT INTO scans (household_id, parent_scan_id, status, simulated, is_demo) VALUES (?, ?, 'uploaded', ?, ?)")
+            ->execute([$householdId, $parentId, (int) $simulated, (int) $demo]);
+        $scanId = (int) $pdo->lastInsertId();
+        mkdir(Pipeline::scanDir($scanId) . '/photos', 0775, true);
+        $rel = sprintf('storage/scans/%d/source.video', $scanId);
+        copy($videoPath, Pipeline::root() . '/' . $rel);
+        $pdo->prepare('UPDATE scans SET video_path = ? WHERE id = ?')->execute([$rel, $scanId]);
+        Queue::push($scanId, 'prepare');
+        return $scanId;
+    }
+
     public static function get(int $id): ?array
     {
         $q = Db::pdo()->prepare('SELECT s.*, h.name AS household, h.mobility, h.ltc_level, h.ltc_category FROM scans s JOIN households h ON h.id = s.household_id WHERE s.id = ?');

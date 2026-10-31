@@ -46,11 +46,14 @@ def parse(args: argparse.Namespace) -> dict:
         if isinstance(r, SegmentationBoxRecord):
             confidence[(r.object_id, r.frame.frame_index if r.frame else 0)] = r.confidence
 
+    keep = {int(v) for v in args.keep_frames.split(",")} if args.keep_frames else None
     objects = []
     for r in records:
         if not isinstance(r, SegmentationMaskRecord):
             continue
         frame = r.frame.frame_index if r.frame else 0
+        if keep is not None and frame not in keep:
+            continue
         raster = np.frombuffer(decode_mask_to_raster(r.mask), dtype=np.uint8).reshape(r.mask.height, r.mask.width)
         mask_path = out_dir / f"{args.label}_o{r.object_id}_f{frame}.png"
         Image.fromarray(raster * 255).save(mask_path)
@@ -351,6 +354,7 @@ def main() -> int:
     p.add_argument("--media", choices=["image", "video"], default="image")
     p.add_argument("--label", required=True)
     p.add_argument("--out-dir", required=True)
+    p.add_argument("--keep-frames", help="comma-separated: keep only these video frames (masks are otherwise one file per frame)")
     o = sub.add_parser("overlay")
     o.add_argument("--image", required=True)
     o.add_argument("--objects", nargs="+", required=True)
