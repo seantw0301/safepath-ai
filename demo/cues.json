@@ -1,0 +1,21 @@
+{
+  "voice": "af_heart",
+  "speed": 1.0,
+  "cues": [
+    {"at": 0, "text": "Everything in this demo was built during the hackathon, from a fresh repo. These scenes are simulated."},
+    {"at": 7, "text": "A home can look fine and still block the way. For someone with a walker, who notices?"},
+    {"at": 15, "text": "SafePath: film the home, get it measured, get the paperwork, and prove the fix."},
+    {"at": 22, "text": "Photos go to SAM 3.1, then a rule table, then a Muse Spark agent, then a draft subsidy package, then a re-shoot."},
+    {"at": 32, "text": "These demo homes ran through the real pipeline. The photos are generated and the scale is assumed, and the page says so."},
+    {"at": 42, "text": "SAM 3.1 finds each object from a plain text prompt. Its masks show exactly what it found."},
+    {"at": 51, "text": "SafePath finds the floor and draws the walking path. Shoes on the path are red. A box against the wall is only noted."},
+    {"at": 62, "text": "Verdicts come from a rule table, not from the model, so every number can be traced. A real A4 sheet on the door frame sets the scale. Here, it is only assumed."},
+    {"at": 78, "text": "Now the agent takes over. It checks low-confidence findings by looking at the photo, and it looks up the allowed items."},
+    {"at": 89, "text": "When it sends a value the tool won't accept, the tool refuses and the agent corrects itself. It can ask a person to check, but it cannot change a number."},
+    {"at": 103, "text": "The family gets a clearing list for today, and work orders."},
+    {"at": 110, "text": "And a draft Taiwan long-term-care subsidy package, with official item codes and caps. It stays a draft until a care professional approves it."},
+    {"at": 124, "text": "After the fix, shoot again. Cleared items must be gone. Construction fixes must be seen: Muse Spark compares before and after, so a missed detection can't pass as a repair."},
+    {"at": 141, "text": "Eleven of eleven items verified in this simulated home, each with its evidence."},
+    {"at": 149, "text": "SAM 3.1 sees and measures. Muse Spark does the paperwork. The code is public. See it. Fix it. Prove it."}
+  ]
+}
