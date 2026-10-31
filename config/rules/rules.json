@@ -1,8 +1,34 @@
 {
   "version": "2026-10-31",
-  "disclaimer": "Reference values for home screening, taken from the public-building accessibility code; not a professional assessment. Pending check against the current official text.",
-  "source": "建築物無障礙設施設計規範（內政部）條號經地方政府檢查表轉引：206.1 高低差超過 3 公分應設坡道；206.2.3 高差 0.5–3 公分坡度 1/2；室內出入口淨寬 ≥ 80 公分",
-  "threshold": {"bevel_over_cm": 0.5, "ramp_over_cm": 3.0},
-  "doorway": {"min_clear_cm": 80, "sanity_min_cm": 50},
-  "path": {"min_overlap": 0.15}
+  "disclaimer": "Reference values for home screening, taken from a code written for public buildings; not a professional assessment and not binding on private homes.",
+  "code": {
+    "name": "建築物無障礙設施設計規範（內政部）",
+    "checked_text": "內政部 101 年 11 月 16 日台內營字第 1010810415 號令修正、102 年 1 月 1 日施行之版本（內政部國土管理署網站 PDF）",
+    "checked_url": "https://www.nlma.gov.tw/uploads/files/a5fc1f6258d7a0d88ce06afde8c68128.pdf",
+    "later_amendments": "待核：其他來源提到 103 年修正，及 109 年 5 月 11 日內授營建管字第 1090805039 號（第三方法規網站）；這些版本的官方全文尚未核對"
+  },
+  "threshold": {
+    "bevel_over_cm": 0.5,
+    "ramp_over_cm": 3.0,
+    "sources": {
+      "bevel_over_cm": "202.2：高低差 0.5 至 3 公分應作 1/2 斜角處理，0.5 公分以下不受限制",
+      "ramp_over_cm": "202.2、206.1：高低差大於 3 公分應設坡道等設施",
+      "levels_by_mobility": "本專案設定，非法規：同一高度依住戶行動方式判紅或黃"
+    }
+  },
+  "doorway": {
+    "min_clear_cm": 80,
+    "sanity_min_cm": 50,
+    "sources": {
+      "min_clear_cm": "205.2.3：室內出入口門框間距離不得小於 90 公分，折疊門、橫向拉門等開啟後淨距的下限較低；504.2：廁所盥洗室出入口淨寬不得小於 80 公分。本專案採 80 公分作篩檢下限，以免誤報；205.2.3 的折疊門、拉門數值待核",
+      "sanity_min_cm": "本專案設定，非法規：低於此寬度視為量測有誤，不判定"
+    }
+  },
+  "path": {
+    "min_overlap": 0.15,
+    "sources": {
+      "min_overlap": "本專案設定，非法規：物件有 15% 壓在推估的行走動線上即判需清除"
+    }
+  },
+  "not_used": "204.2.2：室內通路走廊寬度不得小於 120 公分。目前未判定走廊寬度"
 }

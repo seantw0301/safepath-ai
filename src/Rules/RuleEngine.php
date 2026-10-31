@@ -70,7 +70,11 @@ final class RuleEngine
         return $h;
     }
 
-    /** Official FA codes by height band; the agent may only choose among these. */
+    /**
+     * Official FA codes by height band (附表四: FA25 and FA30 up to 10 cm, FA31 to 20, FA32 to 30, FA33 above).
+     * The agent may only choose among these. The ramp boards FA26–FA29 are priced by length, which depends on
+     * slope and space: the pair offered here is this project's starting point, for the assessor to confirm.
+     */
     private function thresholdCodes(float $cm, string $mobility): array
     {
         $build = match (true) {
@@ -96,7 +100,7 @@ final class RuleEngine
         if ($cm < $r['sanity_min_cm'] || $cm >= $r['min_clear_cm']) {
             return null; // too small to be a real full doorway measure, or already wide enough
         }
-        $level = $mobility === 'wheelchair' ? 'red' : 'yellow';
+        $level = $mobility === 'wheelchair' ? 'red' : 'yellow'; // 80 cm is a screening floor: see config/rules/rules.json
         $h = $this->base('doorway', 'Narrow doorway', 'construct', $o, $level,
             [sprintf('門口淨寬約 %.1f 公分，低於參考值 %d 公分。', $cm, $r['min_clear_cm']), sprintf('Doorway about %.1f cm wide, under the %d cm reference.', $cm, $r['min_clear_cm'])], ['FA38']);
         $h['value_cm'] = $cm;
