@@ -182,14 +182,26 @@ final class MetaClient
         return $dir . '/' . sha1($key) . '.' . $ext;
     }
 
-    public function transcribe(string $path, string $filename): string
+    /** Speech to text. The API takes mono 16-bit PCM WAV, so the upload is converted first and the copy removed. */
+    public function transcribe(string $path): string
     {
-        $this->guard->reserve('transcribe');
-        $res = $this->request('/asr/transcribe', [
-            'model' => Env::get('META_TRANSCRIBE_MODEL', 'muse-voice-transcribe-1.0'),
-            'file' => new \CURLFile($path, null, $filename),
-        ], false);
-        return (string) ($res['text'] ?? '');
+        $wav = tempnam(sys_get_temp_dir(), 'safepath') . '.wav';
+        $cmd = sprintf('%s -y -loglevel error -i %s -ac 1 -ar 24000 -c:a pcm_s16le -map_metadata -1 %s 2>&1', escapeshellarg((string) Env::get('FFMPEG_BIN', 'ffmpeg')), escapeshellarg($path), escapeshellarg($wav));
+        exec($cmd, $out, $code);
+        if ($code !== 0) {
+            throw new RuntimeException('could not read this audio');
+        }
+        try {
+            $this->guard->reserve('transcribe');
+            $settings = json_encode(['mode' => 'PUSH_TO_TALK', 'model' => Env::get('META_TRANSCRIBE_MODEL', 'muse-voice-transcribe-1.0'), 'audioEncoding' => 'WAV']);
+            $res = $this->request('/asr/transcribe', [
+                'request' => new \CURLStringFile($settings, 'request.json', 'application/json'),
+                'audio' => new \CURLFile($wav, 'audio/wav', 'audio.wav'),
+            ], false);
+        } finally {
+            @unlink($wav);
+        }
+        return (string) ($res['transcript'] ?? '');
     }
 
     private function outputText(array $res): string

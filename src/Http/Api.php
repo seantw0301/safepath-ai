@@ -149,7 +149,7 @@ final class Api
             return;
         }
         $meta = new MetaClient();
-        $text = $meta->transcribe($file, (string) ($_FILES['audio']['name'] ?? 'audio.m4a'));
+        $text = $meta->transcribe($file);
         $profile = $meta->sparkJson(
             'Extract how the resident moves around their home from what the family said. Do not give health advice. Use "independent" if they walk unaided.',
             $text,
