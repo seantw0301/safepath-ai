@@ -14,3 +14,4 @@ __pycache__/
 ._*
 /docs/private/
 .phpunit.result.cache
+!/docs/demo-provisional.mp4
