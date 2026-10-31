@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS hazards (
   action TEXT NULL,
   bounds_json TEXT NULL,
   note TEXT NULL,
+  note_en TEXT NULL,
   value_cm REAL NULL,
   error_cm REAL NULL,
   level TEXT NOT NULL,

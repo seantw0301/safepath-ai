@@ -30,6 +30,10 @@ foreach ([['Demo home A (walker)', 'walker', 4, 3], ['Demo home B (wheelchair)',
     $home = Scans::createHousehold($name, $mobility, $level, $category);
     $before = Scans::create($home, $photos('before'), null, true, true);
     $worker->drain();
+    if (Scans::get($before)['status'] !== 'report_ready') {
+        fwrite(STDERR, 'demo scan failed: ' . Scans::get($before)['error'] . PHP_EOL);
+        exit(1);
+    }
     $after = Scans::create($home, $photos('after'), $before, true, true);
     $worker->drain();
     foreach ([$before, $after] as $id) {

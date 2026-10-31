@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SafePath\Job;
 
 use RuntimeException;
-use SafePath\Agent\PaperworkAgent;
+use SafePath\Agent\CaseAgent;
 use SafePath\Agent\VerifyAgent;
 use SafePath\Infra\Db;
 use SafePath\Infra\Env;
@@ -284,10 +284,10 @@ final class Pipeline
             }
             $spec = ['items' => [], 'corridor' => is_file("$dir/corridor.png") ? "$dir/corridor.png" : null];
             foreach ($hazards as $h) {
-                $pdo->prepare('INSERT INTO hazards (scan_id, frame_idx, room, type, name, action, value_cm, level, status, note, bounds_json, evidence_json)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')->execute([
+                $pdo->prepare('INSERT INTO hazards (scan_id, frame_idx, room, type, name, action, value_cm, level, status, note, note_en, bounds_json, evidence_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')->execute([
                     $scanId, $frame['idx'], $frame['room'], $h['type'], $h['name'], $h['action'], $h['value_cm'], $h['level'],
-                    $h['action'] === 'noted' ? 'noted' : 'open', $h['note'], json_encode($h['bounds']),
+                    $h['action'] === 'noted' ? 'noted' : 'open', $h['note'], $h['note_en'], json_encode($h['bounds']),
                     json_encode(['codes' => $h['codes'], 'confidence' => $h['confidence'], 'on_path_ratio' => $h['on_path_ratio'] ?? null]),
                 ]);
                 $tag = $h['name'] . ($h['value_cm'] !== null ? sprintf(' %.1f cm', $h['value_cm']) : '') . ' · ' . strtoupper($h['level']);
@@ -334,11 +334,11 @@ final class Pipeline
     private function paperwork(int $scanId): ?string
     {
         $t = microtime(true);
-        $result = (new PaperworkAgent($this->meta))->run($scanId);
-        $this->step($scanId, 'write_work_orders', ['hazards' => $result['hazards']], ['orders' => $result['orders']], $t, 'paperwork');
+        $result = (new CaseAgent($this->meta))->run($scanId);
+        $this->step($scanId, 'agent_run', [], $result, $t, 'case_agent');
         $t = microtime(true);
         $pack = (new SubsidyPack())->build($scanId);
-        $this->step($scanId, 'make_subsidy_pack', ['version' => $pack['version']], ['items' => count($pack['items'])], $t, 'paperwork');
+        $this->step($scanId, 'make_subsidy_pack', ['version' => $pack['version']], ['items' => count($pack['items'])], $t);
         $this->setStatus($scanId, 'report_ready');
         return null;
     }

@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS hazards (
   action VARCHAR(20) NULL,
   bounds_json JSON NULL,
   note TEXT NULL,
+  note_en TEXT NULL,
   value_cm DECIMAL(8,2) NULL,
   error_cm DECIMAL(8,2) NULL,
   level ENUM('red','yellow','green','unknown') NOT NULL,

@@ -61,6 +61,10 @@ final class Api
             Response::json(['error' => 'scan_not_found'], 404);
             return;
         }
+        if ($parent['status'] !== 'report_ready') {
+            Response::json(['error' => 'scan_not_ready_for_verify'], 409);
+            return;
+        }
         $video = self::uploadedVideo();
         if ($video !== null) {
             is_string($video) && !is_file($video)

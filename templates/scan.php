@@ -50,7 +50,7 @@ $media = static fn (int $sid, int $idx, string $f = 'overlay') => "/media/$sid?f
 <tr><th>Room</th><th>Item</th><th>Verdict</th><th>Measured</th><th>Why</th></tr>
 <?php foreach ($hazards as $h): ?>
 <tr><td><?= $e($h['room']) ?></td><td><?= $e($h['name']) ?></td><td><span class="pill <?= $e($h['level']) ?>"><?= $e(strtoupper($h['level'])) ?></span></td>
-<td><?= $h['value_cm'] !== null ? sprintf('%.1f cm', $h['value_cm']) : '—' ?></td><td><?= $e($h['note']) ?></td></tr>
+<td><?= $h['value_cm'] !== null ? sprintf('%.1f cm', $h['value_cm']) : '—' ?></td><td><?= $e($h['note_en']) ?><br><span class="muted small"><?= $e($h['note']) ?></span></td></tr>
 <?php endforeach; ?>
 </table></div>
 
@@ -126,9 +126,9 @@ $media = static fn (int $sid, int $idx, string $f = 'overlay') => "/media/$sid?f
 <h2>Agent trace <span class="muted small">how this result was produced</span></h2>
 <div class="card tablewrap"><table>
 <tr><th>Step</th><th>Tool</th><th>Result</th><th>ms</th></tr>
-<?php foreach (array_slice(array_values(array_filter($report['steps'], static fn ($st) => $st['tool'] !== 'sam_segment')), 0, 24) as $i => $st): ?>
+<?php foreach (array_slice(array_values(array_filter($report['steps'], static fn ($st) => !in_array($st['tool'], ['sam_segment', 'sam_track'], true))), 0, 40) as $i => $st): ?>
 <tr><td><?= $e($st['agent'] ?? 'pipeline') ?></td><td><?= $e($st['tool']) ?></td><td><pre><?= $e(mb_strimwidth((string) $st['output_json'], 0, 160, '…')) ?></pre></td><td><?= (int) $st['ms'] ?></td></tr>
 <?php endforeach; ?>
 </table>
-<p class="muted small"><?= count(array_filter($report['steps'], static fn ($st) => $st['tool'] === 'sam_segment')) ?> SAM 3.1 prompt calls not listed.</p></div>
+<p class="muted small"><?= count(array_filter($report['steps'], static fn ($st) => in_array($st['tool'], ['sam_segment', 'sam_track'], true))) ?> SAM 3.1 prompt calls not listed.</p></div>
 <?php endif; ?>

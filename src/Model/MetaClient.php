@@ -120,6 +120,30 @@ final class MetaClient
         return $json;
     }
 
+    /**
+     * One agent turn with tools. History is replayed in full (no server state), so a whole
+     * deterministic agent run replays from cache at no cost.
+     *
+     * @return array<int, array> the response's output items
+     */
+    public function sparkTurn(string $system, array $input, array $tools): array
+    {
+        $cache = $this->cachePath('agent', $system . '|' . json_encode($input) . '|' . json_encode($tools), 'json');
+        if (is_file($cache)) {
+            return json_decode((string) file_get_contents($cache), true);
+        }
+        $this->guard->reserve('spark');
+        $res = $this->post('/responses', [
+            'model' => Env::get('META_SPARK_MODEL', 'muse-spark-1.3'),
+            'instructions' => $system,
+            'input' => $input,
+            'tools' => $tools,
+            'store' => false,
+        ]);
+        file_put_contents($cache, json_encode($res['output'] ?? [], JSON_UNESCAPED_UNICODE));
+        return $res['output'] ?? [];
+    }
+
     /** Same as sparkJson, with images the model looks at. */
     public function sparkVisionJson(string $system, string $user, array $imagePaths, string $name, array $schema): array
     {
