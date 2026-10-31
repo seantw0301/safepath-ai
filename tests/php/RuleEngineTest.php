@@ -121,6 +121,15 @@ final class RuleEngineTest extends TestCase
         self::assertSame([], $this->evaluate(['doorway' => [$this->object(200, 20)]]));
     }
 
+    public function testDoorwayReasonIsAReferenceWithItsCitations(): void
+    {
+        $hazard = $this->evaluate(['doorway' => [$this->object(200, 70)]])[0];
+        self::assertStringContainsString('205.2.3', $hazard['note']);
+        self::assertStringContainsString('504.2', $hazard['note_en']);
+        self::assertStringContainsString('參考值', $hazard['note']);
+        self::assertStringNotContainsString('違規', $hazard['note']);
+    }
+
     public function testEveryReasonIsBilingual(): void
     {
         $hazards = $this->evaluate(['threshold' => [$this->object()], 'wet_floor' => [$this->object()], 'toilet' => [$this->object()]]);

@@ -102,7 +102,10 @@ final class RuleEngine
         }
         $level = $mobility === 'wheelchair' ? 'red' : 'yellow'; // 80 cm is a screening floor: see config/rules/rules.json
         $h = $this->base('doorway', 'Narrow doorway', 'construct', $o, $level,
-            [sprintf('門口淨寬約 %.1f 公分，低於參考值 %d 公分。', $cm, $r['min_clear_cm']), sprintf('Doorway about %.1f cm wide, under the %d cm reference.', $cm, $r['min_clear_cm'])], ['FA38']);
+            [
+                sprintf('門口淨寬約 %.1f 公分，低於篩檢參考值 %d 公分（規範 205.2.3 室內出入口門框間距 90 公分、504.2 廁所 80 公分）。', $cm, $r['min_clear_cm']),
+                sprintf('Doorway about %.1f cm wide, under the %d cm screening reference (code 205.2.3: 90 cm between door frames indoors; 504.2: 80 cm for toilets).', $cm, $r['min_clear_cm']),
+            ], ['FA38']);
         $h['value_cm'] = $cm;
         return $h;
     }
