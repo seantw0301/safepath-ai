@@ -67,40 +67,43 @@ await page.evaluate(() => {
   img.style.cssText = 'position:fixed;inset:0;margin:auto;max-height:100vh;width:auto;z-index:50;border-radius:0';
   img.onclick = null;
 });
-await at(7);
-await page.evaluate(() => { document.querySelectorAll('main .grid .card img')[1].style.cssText = ''; });
-await caption(cues[7].text);
+await go(7, '/scans/5');
+await page.evaluate(() => [...document.querySelectorAll('h2')].find((h) => h.textContent.includes('What we found'))?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+
+await go(8, '/scans/1');
 await page.evaluate(() => document.querySelector('main table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 
-await at(8);
-await caption(cues[8].text);
-await toHeading('Agent trace');
 await at(9);
 await caption(cues[9].text);
+await toHeading('Agent trace');
+
+await show(10, card('Detector: "shoes", 0.9', 'Agent: a sticker. Handed to a person.', dataUrl(join(scenes, 'false_positive.jpg'))));
+
+await go(11, '/scans/1');
 await page.evaluate(() => {
   const row = document.querySelector('tr.err');
   row?.querySelector('details')?.setAttribute('open', '');
-  row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  row?.scrollIntoView({ behavior: 'instant', block: 'center' });
 });
-await at(10);
-await caption(cues[10].text);
+await at(12);
+await caption(cues[12].text);
 await toHeading('Clear today');
 await page.waitForTimeout(3500);
 await toHeading('Work orders');
 
-await at(11);
-await caption(cues[11].text);
+await at(13);
+await caption(cues[13].text);
 await toHeading('subsidy draft');
 await page.waitForTimeout(6000);
 const pdf = process.env.PACK_IMAGE;
 if (pdf) {
   await page.setContent(card('', '', `data:image/png;base64,${readFileSync(pdf).toString('base64')}`).replace('max-height:58vh', 'max-height:98vh').replace('padding:0 80px', 'padding:0'));
-  await caption(cues[11].text);
+  await caption(cues[13].text);
 }
 
-await at(12);
+await at(14);
 await page.goto(BASE + '/scans/1');
-await caption(cues[12].text);
+await caption(cues[14].text);
 await toHeading('After the fix');
 await page.waitForTimeout(1000);
 for (const index of [0, 1, 2]) {
@@ -116,11 +119,11 @@ async function slide(index, value) {
   await page.waitForTimeout(90);
 }
 
-await at(13);
-await caption(cues[13].text);
+await at(15);
+await caption(cues[15].text);
 await page.evaluate(() => [...document.querySelectorAll('.tablewrap')].find((c) => c.textContent.includes('verified fixed'))?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 
-await show(14, card('SafePath AI', 'SAM 3.1 · Muse Spark · Muse Image (simulated scenes)<br>github.com/seantw0301/safepath-ai<br><br>See it. Fix it. Prove it.'));
+await show(16, card('SafePath AI', 'SAM 3.1 · Muse Spark · Muse Image (simulated scenes)<br>github.com/seantw0301/safepath-ai<br><br>See it. Fix it. Prove it.'));
 await page.waitForTimeout(9000);
 
 const seconds = (Date.now() - t0) / 1000;
