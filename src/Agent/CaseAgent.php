@@ -61,21 +61,14 @@ TXT;
             return ['hazards' => 0, 'orders' => 0, 'turns' => 0, 'finished' => true];
         }
 
-        $input = [['type' => 'message', 'role' => 'user', 'content' => 'Prepare the paperwork for this scan.']];
-        $turn = 0;
-        while ($this->summary === null && $turn < self::MAX_TURNS) {
-            $turn++;
-            $output = $this->meta->sparkTurn(self::SYSTEM, $input, self::tools());
-            $input = array_merge($input, $output);
-            $calls = array_values(array_filter($output, static fn ($item) => ($item['type'] ?? '') === 'function_call'));
-            if ($calls === []) {
-                $input[] = ['type' => 'message', 'role' => 'user', 'content' => 'Continue with your tools, and call finish when every hazard is handled.'];
-                continue;
-            }
-            foreach ($calls as $call) {
-                $input[] = ['type' => 'function_call_output', 'call_id' => $call['call_id'], 'output' => json_encode($this->dispatch($call), JSON_UNESCAPED_UNICODE)];
-            }
-        }
+        $turn = (new AgentLoop($this->meta, $scanId, 'case_agent'))->run(
+            self::SYSTEM,
+            self::tools(),
+            'Prepare the paperwork for this scan.',
+            $this->dispatch(...),
+            fn () => $this->summary !== null,
+            self::MAX_TURNS
+        );
         $finished = $this->summary !== null;
         $this->coverMissing();
         Db::pdo()->prepare('UPDATE scans SET summary_json = ? WHERE id = ?')
@@ -83,27 +76,18 @@ TXT;
         return ['hazards' => count($this->hazards), 'orders' => count($this->drafted), 'turns' => $turn, 'finished' => $finished];
     }
 
-    private function dispatch(array $call): array
+    private function dispatch(string $name, array $args): array
     {
-        $t = microtime(true);
-        $args = json_decode((string) $call['arguments'], true) ?? [];
-        try {
-            $result = match ($call['name']) {
-                'get_hazards' => $this->getHazards(),
-                'inspect_photo' => $this->inspectPhoto($args),
-                'flag_for_review' => $this->flagForReview($args),
-                'measure' => $this->measure($args),
-                'lookup_subsidy' => $this->lookupSubsidy($args),
-                'draft_work_order' => $this->draftWorkOrder($args),
-                'finish' => $this->finish($args),
-                default => ['error' => 'unknown tool'],
-            };
-        } catch (RuntimeException $e) {
-            $result = ['error' => $e->getMessage()]; // the model reads the error and corrects itself
-        }
-        Db::pdo()->prepare('INSERT INTO scan_steps (scan_id, agent, tool, input_json, output_json, ms) VALUES (?, ?, ?, ?, ?, ?)')
-            ->execute([$this->scanId, 'case_agent', $call['name'], json_encode($args, JSON_UNESCAPED_UNICODE), json_encode($result, JSON_UNESCAPED_UNICODE), (int) ((microtime(true) - $t) * 1000)]);
-        return $result;
+        return match ($name) {
+            'get_hazards' => $this->getHazards(),
+            'inspect_photo' => $this->inspectPhoto($args),
+            'flag_for_review' => $this->flagForReview($args),
+            'measure' => $this->measure($args),
+            'lookup_subsidy' => $this->lookupSubsidy($args),
+            'draft_work_order' => $this->draftWorkOrder($args),
+            'finish' => $this->finish($args),
+            default => ['error' => 'unknown tool'],
+        };
     }
 
     private function hazard(array $args): array
@@ -253,10 +237,7 @@ TXT;
     private static function tools(): array
     {
         $ref = ['hazard' => ['type' => 'string', 'description' => 'Hazard reference such as H1']];
-        $tool = static fn (string $name, string $description, array $properties, array $required) => [
-            'type' => 'function', 'name' => $name, 'description' => $description,
-            'parameters' => ['type' => 'object', 'properties' => (object) $properties, 'required' => $required],
-        ];
+        $tool = AgentLoop::tool(...);
         return [
             $tool('get_hazards', 'List the findings of this scan and the resident\'s mobility.', [], []),
             $tool('inspect_photo', 'Look at the photo crop of a hazard to check that it is real.', $ref + ['question' => ['type' => 'string']], ['hazard']),

@@ -87,7 +87,8 @@ $isVideo = $scan['video_path'] !== null;
 <h2><?= $t('verify') ?></h2>
 <?php if ($verify !== null): ?>
   <?php $results = $verify['summary']['verify'] ?? []; $fixedCount = count(array_filter($results, static fn ($r) => $r['status'] === 'verified_fixed')); $vid = (int) $verify['scan']['id']; ?>
-  <div class="card"><b><?= sprintf($t('verified_n'), $fixedCount, count($results)) ?></b> <span class="muted small"><a href="<?= $u("/scans/$vid") ?>"><?= $t('rescan') ?> #<?= $vid ?></a></span></div>
+  <div class="card"><b><?= sprintf($t('verified_n'), $fixedCount, count($results)) ?></b> <span class="muted small"><a href="<?= $u("/scans/$vid") ?>"><?= $t('rescan') ?> #<?= $vid ?></a></span>
+  <?php if (!empty($verify['summary']['summary_en'])): ?><p style="margin:8px 0 0"><?= $both($verify['summary']['summary_en'], $verify['summary']['summary_zh']) ?></p><?php endif; ?></div>
   <?php if (!$isVideo): ?>
   <div class="grid">
   <?php foreach ($report['frames'] as $f): ?>

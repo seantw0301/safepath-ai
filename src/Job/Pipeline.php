@@ -356,10 +356,10 @@ final class Pipeline
         $after = $pdo->prepare("SELECT * FROM hazards WHERE scan_id = ? AND level IN ('red', 'yellow', 'unknown')");
         $after->execute([$scanId]);
         $remaining = $after->fetchAll();
-        $results = [];
-        $fixed = 0;
         $used = [];
         $isVideo = Scans::get($scanId)['video_path'] !== null;
+        $pairs = [];
+        $toConfirm = [];
         foreach ($before->fetchAll() as $h) {
             $still = null;
             foreach ($remaining as $r) {
@@ -372,25 +372,33 @@ final class Pipeline
                     break;
                 }
             }
-            $status = $still === null ? 'verified_fixed' : ($still['level'] === 'unknown' ? 'unknown' : 'still_open');
-            $check = null;
-            // A construction fix must be seen, not just inferred from a missed detection.
+            $pairs[] = [$h, $still];
             if ($still === null && $h['action'] === 'construct') {
-                $t = microtime(true);
-                $check = (new VerifyAgent($this->meta))->check($h, $parentId, $scanId);
-                $this->step($scanId, 'confirm_fix', ['hazard' => $h['name'], 'room' => $h['room']], $check, $t, 'verify');
-                $status = match ($check['verdict']) {
-                    'fixed' => 'verified_fixed',
-                    'not_fixed' => 'still_open',
-                    default => 'unknown',
-                };
+                $toConfirm[] = $h;
+            }
+        }
+
+        // A construction fix must be seen, not just inferred from a missed detection.
+        $t = microtime(true);
+        $agent = (new VerifyAgent($this->meta))->run($toConfirm, $parentId, $scanId);
+        if ($toConfirm !== []) {
+            $this->step($scanId, 'agent_run', [], ['items' => count($toConfirm), 'finished' => $agent['summary'] !== null], $t, 'verify');
+        }
+
+        $results = [];
+        $fixed = 0;
+        foreach ($pairs as [$h, $still]) {
+            $check = $agent['checks'][(int) $h['id']] ?? null;
+            $status = $still === null ? 'verified_fixed' : ($still['level'] === 'unknown' ? 'unknown' : 'still_open');
+            if ($check !== null) {
+                $status = ['fixed' => 'verified_fixed', 'not_fixed' => 'still_open'][$check['verdict']] ?? 'unknown';
             }
             $fixed += $status === 'verified_fixed' ? 1 : 0;
-            $after = ['verified_fixed' => 'green', 'unknown' => 'unknown'][$status] ?? ($still['level'] ?? 'red'); // a Spark "not fixed" has no re-detected hazard
+            $after = ['verified_fixed' => 'green', 'unknown' => 'unknown'][$status] ?? ($still['level'] ?? 'red'); // a "not fixed" verdict has no re-detected hazard
             $pdo->prepare('UPDATE hazards SET status = ? WHERE id = ?')->execute([$status, $h['id']]);
             $results[] = ['hazard_id' => (int) $h['id'], 'room' => $h['room'], 'name' => $h['name'], 'before' => $h['level'], 'after' => $after, 'status' => $status, 'confirmation' => $check['evidence'] ?? null];
         }
-        $pdo->prepare('UPDATE scans SET summary_json = ? WHERE id = ?')->execute([json_encode(['verify' => $results], JSON_UNESCAPED_UNICODE), $scanId]);
+        $pdo->prepare('UPDATE scans SET summary_json = ? WHERE id = ?')->execute([json_encode(['verify' => $results] + ($agent['summary'] ?? []), JSON_UNESCAPED_UNICODE), $scanId]);
         $this->setStatus($scanId, $fixed === count($results) ? 'verified' : 'partially_verified');
         return null;
     }
