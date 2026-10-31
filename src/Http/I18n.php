@@ -79,6 +79,8 @@ final class I18n
         'voice_heard' => ['Heard:', '聽到：'],
         'voice_failed' => ['Could not understand that:', '無法辨識：'],
         'voice_no_mic' => ['Microphone not available here (it needs HTTPS and permission).', '無法使用麥克風（需要 HTTPS 與授權）。'],
+        'tracked' => ['SAM 3.1 tracked %d objects across %d video frames. Each is reported once, on the frame where it looks largest.', 'SAM 3.1 在 %2$d 幀影片中追蹤了 %1$d 個物件；每個物件只回報一次，取畫面中最大的那張。'],
+        'sim_video' => ['This clip is a slow zoom over generated scenes, not real camera motion.', '這段影片是生成場景的緩慢放大，不是真實走動。'],
         'not_found' => ['Scan not found', '找不到這次掃描'],
     ];
 

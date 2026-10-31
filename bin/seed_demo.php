@@ -41,3 +41,20 @@ foreach ([['Demo home A (walker)', 'walker', 4, 3], ['Demo home B (wheelchair)',
         echo sprintf("scan %d %s %s%s\n", $id, $name, $scan['status'], $scan['error'] ? ' ERROR: ' . $scan['error'] : '');
     }
 }
+
+// Walkthrough-video demo. SIMULATED: a slow zoom over the generated scenes, not real camera motion.
+$videoDir = __DIR__ . '/../samples/demo-video';
+$prepared = static fn (string $phase): array => json_decode((string) file_get_contents("$videoDir/$phase/manifest.json"), true);
+$home = Scans::createHousehold('Demo home C (video, walker)', 'walker', 4, 3);
+$before = Scans::createFromPreparedVideo($home, "$videoDir/before", $prepared('before'), null, 'Walkthrough');
+$worker->drain();
+if (Scans::get($before)['status'] !== 'report_ready') {
+    fwrite(STDERR, 'video demo failed: ' . Scans::get($before)['error'] . PHP_EOL);
+    exit(1);
+}
+$after = Scans::createFromPreparedVideo($home, "$videoDir/after", $prepared('after'), $before, 'Walkthrough');
+$worker->drain();
+foreach ([$before, $after] as $id) {
+    $scan = Scans::get($id);
+    echo sprintf("scan %d video demo %s%s\n", $id, $scan['status'], $scan['error'] ? ' ERROR: ' . $scan['error'] : '');
+}

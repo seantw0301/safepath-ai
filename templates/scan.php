@@ -46,6 +46,10 @@ $isVideo = $scan['video_path'] !== null;
 <?php endif; ?>
 
 <h2><?= $t('found') ?></h2>
+<?php if ($isVideo): ?>
+  <?php $tracks = 0; foreach ($report['steps'] as $st) { if ($st['tool'] === 'sam_track') { $tracks += (int) (json_decode((string) $st['output_json'], true)['tracks'] ?? 0); } } ?>
+  <div class="card small"><?= sprintf($t('tracked'), $tracks, (int) $scan['video_frames']) ?><?= $scan['simulated'] ? ' ' . $t('sim_video') : '' ?></div>
+<?php endif; ?>
 <div class="grid">
 <?php foreach ($report['frames'] as $f): ?>
   <div class="card"><img src="<?= $e($media($id, (int) $f['idx'])) ?>" alt="<?= $e($f['room']) ?>"><b><?= $e($f['room']) ?></b></div>

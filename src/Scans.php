@@ -60,6 +60,30 @@ final class Scans
         return $scanId;
     }
 
+    /**
+     * Demo only: a video already normalised, with its evidence frames extracted. Skipping ffmpeg keeps
+     * every file byte-identical on any host, so the cached model answers still apply.
+     *
+     * @param array{frames: int, keyframes: array<int, int>} $manifest
+     */
+    public static function createFromPreparedVideo(int $householdId, string $dir, array $manifest, ?int $parentId, string $room): int
+    {
+        $pdo = Db::pdo();
+        $pdo->prepare("INSERT INTO scans (household_id, parent_scan_id, status, simulated, is_demo, video_path, video_frames) VALUES (?, ?, 'uploaded', 1, 1, ?, ?)")
+            ->execute([$householdId, $parentId, 'demo', $manifest['frames']]);
+        $scanId = (int) $pdo->lastInsertId();
+        $photos = Pipeline::scanDir($scanId) . '/photos';
+        mkdir($photos, 0775, true);
+        copy("$dir/walk.mp4", Pipeline::scanDir($scanId) . '/walk.mp4');
+        foreach ($manifest['keyframes'] as $idx => $frame) {
+            copy("$dir/$frame.jpg", "$photos/$frame.jpg");
+            $pdo->prepare('INSERT INTO frames (scan_id, idx, path, room, source_frame) VALUES (?, ?, ?, ?, ?)')
+                ->execute([$scanId, $idx, sprintf('storage/scans/%d/photos/%d.jpg', $scanId, $frame), $room, $frame]);
+        }
+        Queue::push($scanId, 'segment');
+        return $scanId;
+    }
+
     public static function get(int $id): ?array
     {
         $q = Db::pdo()->prepare('SELECT s.*, h.name AS household, h.mobility, h.ltc_level, h.ltc_category FROM scans s JOIN households h ON h.id = s.household_id WHERE s.id = ?');
