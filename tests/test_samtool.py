@@ -1,4 +1,5 @@
 """Measurement math in helpers/samtool. Run: helpers/samtool/.venv/bin/python -m unittest tests/test_samtool.py"""
+import os
 import sys
 import tempfile
 import unittest
@@ -70,6 +71,37 @@ class Corridor(unittest.TestCase):
         corridor = samtool._corridor((200, 100), self.floor, None, [10, 60, 10, 99])
         self.assertTrue(corridor[80, 10])
         self.assertFalse(corridor[80, 150])
+
+
+class PdfFont(unittest.TestCase):
+    def setUp(self):
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+        from reportlab.pdfbase.ttfonts import TTFont
+        self.modules = (pdfmetrics, TTFont, UnicodeCIDFont)
+        self.saved = os.environ.pop("PDF_FONT", None)
+
+    def tearDown(self):
+        os.environ.pop("PDF_FONT", None)
+        if self.saved is not None:
+            os.environ["PDF_FONT"] = self.saved
+
+    def test_missing_explicit_font_fails_loudly(self):
+        os.environ["PDF_FONT"] = "/nonexistent/font.ttf"
+        with self.assertRaises(SystemExit) as error:
+            samtool._register_pdf_font(*self.modules)
+        self.assertIn("file not found", str(error.exception))
+
+    def test_unusable_font_fails_with_the_reason(self):
+        with tempfile.NamedTemporaryFile(suffix=".ttf", delete=False) as bad:
+            bad.write(b"OTTO not a truetype font")
+        os.environ["PDF_FONT"] = bad.name
+        try:
+            with self.assertRaises(SystemExit) as error:
+                samtool._register_pdf_font(*self.modules)
+            self.assertIn("TrueType", str(error.exception))
+        finally:
+            os.unlink(bad.name)
 
 
 if __name__ == "__main__":

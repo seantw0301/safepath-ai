@@ -51,12 +51,23 @@ Demos replay from `samples/cache`, so seeding and viewing them needs no API key 
 With `LIVE_UPLOADS=0` and a complete cache you can leave `META_API_KEY` empty.
 
 ## PDF font
-`samtool pdf` embeds the font at `PDF_FONT` (default: a macOS path). On Linux:
+`samtool pdf` embeds the font in `PDF_FONT`. reportlab needs **TrueType** outlines (`.ttf`, or a `.ttc` holding TrueType); CFF/PostScript fonts such as Noto CJK `.ttc`/`.otf` do not work.
+
+A font that works on Ubuntu:
 ```bash
-apt-get install fonts-arphic-uming
-# .env → PDF_FONT=/usr/share/fonts/truetype/arphic/uming.ttc
+apt-get install fonts-droid-fallback
+# PDF_FONT=/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf
 ```
-`PDF_FONT` is read from the environment, so also add `Environment=PDF_FONT=...` to the worker service. Without a font file it falls back to a non-embedded CID font, which some viewers show as garbled text. **Open a generated PDF to check.**
+`samtool` reads `PDF_FONT` from the environment of the process that renders the PDF, which is the worker. Set it in the worker service (`Environment=PDF_FONT=...` in `deploy/safepath-worker.service`), not only in `.env`.
+
+| Situation | What happens |
+|---|---|
+| `PDF_FONT` set and loads | font embedded; any viewer shows Chinese |
+| `PDF_FONT` set but missing or not TrueType | the scan's paperwork step fails with a message naming the font and why |
+| `PDF_FONT` not set (macOS default font present) | that font is embedded |
+| `PDF_FONT` not set, no default | non-embedded MSung-Light CID font, with a warning on stderr; some viewers show garbled text |
+
+**Open a generated PDF to check.**
 
 ## Check it
 ```bash

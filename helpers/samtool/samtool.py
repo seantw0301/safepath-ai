@@ -283,6 +283,33 @@ def annotate(args: argparse.Namespace) -> dict:
     return {"out": args.out}
 
 
+DEFAULT_PDF_FONT = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
+
+
+def _register_pdf_font(pdfmetrics, TTFont, UnicodeCIDFont) -> str:
+    """An explicit PDF_FONT must load, or we fail loudly. Without one, use the macOS default if present, else a
+    non-embedded CID font (some viewers then show Chinese as garbage), and say so on stderr."""
+    path = os.environ.get("PDF_FONT")
+    if path:
+        if not os.path.isfile(path):
+            raise SystemExit(f"PDF_FONT={path}: file not found")
+        try:
+            pdfmetrics.registerFont(TTFont("SafePathCJK", path))
+        except Exception as error:  # reportlab raises TTFError and others
+            raise SystemExit(
+                f"PDF_FONT={path}: reportlab cannot use this font ({error}). It needs TrueType outlines (.ttf, or a "
+                ".ttc with TrueType inside); CFF/PostScript fonts such as Noto CJK .ttc/.otf are not supported."
+            )
+        return "SafePathCJK"
+    if os.path.isfile(DEFAULT_PDF_FONT):
+        pdfmetrics.registerFont(TTFont("SafePathCJK", DEFAULT_PDF_FONT))
+        return "SafePathCJK"
+    print("samtool pdf: no PDF_FONT set and no default font found; using the non-embedded MSung-Light CID font, "
+          "which some PDF viewers cannot display", file=sys.stderr)
+    pdfmetrics.registerFont(UnicodeCIDFont("MSung-Light"))
+    return "MSung-Light"
+
+
 def pdf(args: argparse.Namespace) -> dict:
     """Render the subsidy draft with an embedded CJK font (so any viewer shows it), else the MSung CID font."""
     from reportlab.lib.pagesizes import A4
@@ -294,13 +321,7 @@ def pdf(args: argparse.Namespace) -> dict:
     from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.platypus import Image as RLImage, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-    font_path = os.environ.get("PDF_FONT", "/System/Library/Fonts/Supplemental/Arial Unicode.ttf")
-    if os.path.isfile(font_path):
-        font = "SafePathCJK"
-        pdfmetrics.registerFont(TTFont(font, font_path))
-    else:
-        font = "MSung-Light"
-        pdfmetrics.registerFont(UnicodeCIDFont(font))
+    font = _register_pdf_font(pdfmetrics, TTFont, UnicodeCIDFont)
     body = ParagraphStyle("b", fontName=font, fontSize=10, leading=15, wordWrap="CJK")
     small = ParagraphStyle("s", parent=body, fontSize=8, leading=12, textColor=colors.grey)
     head = ParagraphStyle("h", parent=body, fontSize=13, leading=20, spaceBefore=10, spaceAfter=4)
