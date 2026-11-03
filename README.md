@@ -8,7 +8,7 @@ All code in this repository was written during the hackathon (from 2026-10-27).
 
 ## How it works 流程
 ```mermaid
-flowchart LR
+flowchart TD
     A["📱 Film the home<br/>手機繞家拍攝<br/>(photos / walkthrough video)"] --> B["🔍 SAM 3.1<br/>text-prompted masks<br/>+ video tracking"]
     B --> C["📏 Measure<br/>A4 sheet = scale<br/>door width · threshold height"]
     C --> D["🚶 Rule engine<br/>walking-path check<br/>Taiwan accessibility code"]
