@@ -48,6 +48,10 @@ def parse(args: argparse.Namespace) -> dict:
             confidence[(r.object_id, r.frame.frame_index if r.frame else 0)] = r.confidence
 
     keep = {int(v) for v in args.keep_frames.split(",")} if args.keep_frames else None
+    seen: dict[str, list[int]] = {}
+    for r in records:
+        if isinstance(r, SegmentationMaskRecord):
+            seen.setdefault(r.object_id, []).append(r.frame.frame_index if r.frame else 0)
     objects = []
     for r in records:
         if not isinstance(r, SegmentationMaskRecord):
@@ -67,8 +71,20 @@ def parse(args: argparse.Namespace) -> dict:
             "confidence": r.confidence if r.confidence is not None else confidence.get((r.object_id, frame)),
             "mask": str(mask_path),
             "area_px": int(raster.sum() * ((b.right - b.left) * (b.bottom - b.top)) / max(1, raster.size)),
+            "longest_run": _longest_run(seen.get(r.object_id, [])),
         })
     return {"objects": objects, "diagnostics": diagnostics}
+
+
+def _longest_run(frames: list[int]) -> int:
+    """Most consecutive video frames an object was seen in (an image counts as one)."""
+    best = run = 0
+    last = None
+    for f in sorted(set(frames)):
+        run = run + 1 if last is not None and f == last + 1 else 1
+        best = max(best, run)
+        last = f
+    return best
 
 
 def _full_mask(obj: dict, size: tuple[int, int]) -> np.ndarray:
@@ -115,15 +131,58 @@ def _principal_extent(mask: np.ndarray) -> tuple[float, float]:
     return float(spans.max()), float(spans.min())
 
 
+# A4 plausibility, tuned on real phone photos (docs/measurement-validation.md): real sheets were 9-21 px/cm,
+# 1.8-9.6% of the frame, value 0.75-0.93 and saturation 0.02-0.12; wall posters and noise fell below these.
+A4_MAX_ASPECT_ERROR = 0.15
+A4_MIN_AREA = 0.01
+A4_MIN_VALUE = 0.65
+A4_MAX_SATURATION = 0.15
+A4_PX_PER_CM = (4.0, 60.0)
+
+
+def _check_reference(rgb: Image.Image, mask: np.ndarray) -> dict:
+    """Is this mask plausibly a flat, white A4 sheet? Returns the scale and every reason it is not."""
+    reasons = []
+    if mask.sum() < 50:
+        return {"usable": False, "reasons": ["mask too small"], "px_per_cm": None}
+    long_px, short_px = _principal_extent(mask)
+    px_per_cm = (long_px / A4_CM[1] + short_px / A4_CM[0]) / 2
+    aspect_error = abs((long_px / max(short_px, 1e-6)) - (A4_CM[1] / A4_CM[0])) / (A4_CM[1] / A4_CM[0])
+    hsv = np.asarray(rgb.convert("HSV")).astype(np.float64) / 255
+    value = float(hsv[..., 2][mask].mean())
+    saturation = float(hsv[..., 1][mask].mean())
+    area = float(mask.sum() / mask.size)
+    if aspect_error > A4_MAX_ASPECT_ERROR:
+        reasons.append(f"shape {aspect_error:.0%} off A4")
+    if area < A4_MIN_AREA:
+        reasons.append(f"covers only {area:.2%} of the photo")
+    if value < A4_MIN_VALUE or saturation > A4_MAX_SATURATION:
+        reasons.append(f"not white enough (value {value:.2f}, saturation {saturation:.2f})")
+    if not A4_PX_PER_CM[0] <= px_per_cm <= A4_PX_PER_CM[1]:
+        reasons.append(f"implausible scale {px_per_cm:.1f} px/cm")
+    return {
+        "usable": not reasons, "reasons": reasons, "px_per_cm": round(px_per_cm, 3),
+        "aspect_error": round(aspect_error, 3), "area": round(area, 4), "value": round(value, 2), "saturation": round(saturation, 2),
+    }
+
+
 def measure(args: argparse.Namespace) -> dict:
     ref = json.loads(Path(args.reference).read_text())["objects"]
     if not ref:
-        return {"status": "no_reference"}
-    best = max(ref, key=lambda o: o["confidence"] or 0)
-    size = Image.open(args.image).size
-    long_px, short_px = _principal_extent(_full_mask(best, size))
-    px_per_cm = (long_px / A4_CM[1] + short_px / A4_CM[0]) / 2
-    aspect_error = abs((long_px / short_px) - (A4_CM[1] / A4_CM[0])) / (A4_CM[1] / A4_CM[0])
+        return {"status": "no_reference", "usable": False}
+    rgb = Image.open(args.image).convert("RGB")
+    size = rgb.size
+    checks = []
+    for obj in sorted(ref, key=lambda o: -(o["confidence"] or 0)):
+        check = _check_reference(rgb, _full_mask(obj, size))
+        checks.append({"object_id": obj["object_id"], "confidence": obj["confidence"], **check})
+    passing = [c for c in checks if c["usable"]]
+    if not passing:
+        # No size is given at all without a believable sheet.
+        return {"status": "no_usable_reference", "usable": False, "candidates": checks}
+    best = passing[0]
+    px_per_cm = best["px_per_cm"]
+    aspect_error = best["aspect_error"]
 
     results = []
     for path in args.objects:
@@ -143,8 +202,11 @@ def measure(args: argparse.Namespace) -> dict:
                 "short_cm": round(short_obj / px_per_cm, 1),
             })
     return {
+        "usable": True,
         "px_per_cm": round(px_per_cm, 3),
         "reference_aspect_error": round(aspect_error, 3),
+        "reference_object": best["object_id"],
+        "candidates": checks,
         "note": "single-plane estimate: valid only for objects near the reference's depth",
         "measurements": results,
     }

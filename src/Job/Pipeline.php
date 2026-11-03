@@ -22,6 +22,7 @@ final class Pipeline
     private const VIDEO_MAX_SECONDS = 60;
     private const VIDEO_KEYFRAMES = 6;
     private const VIDEO_ROOM = 'Walkthrough';
+    private const VIDEO_REFERENCE_MIN_RUN = 3; // consecutive frames at 3 fps: about one second
     private const VIDEO_EVERY_FRAME = ['floor', 'doorway', 'toilet', 'grab_bar', 'reference', 'person'];
 
     private array $config;
@@ -126,6 +127,10 @@ final class Pipeline
                 $label = (string) preg_replace('/\W+/', '_', $prompt);
                 $parsed = SamTool::run('parse', ['media' => 'video', 'label' => $label, 'out-dir' => $maskDir, 'keep-frames' => $keep], $raw);
                 $found = array_values(array_filter($parsed['objects'], static fn ($o) => ($o['confidence'] ?? 0) >= $min));
+                if ($class === 'reference') {
+                    // A real sheet stays in view; a one-off white blob does not. Keep only steady tracks.
+                    $found = array_values(array_filter($found, static fn ($o) => ($o['longest_run'] ?? 0) >= self::VIDEO_REFERENCE_MIN_RUN));
+                }
                 // Scene context must exist on every frame; hazards should appear only once.
                 $objects = in_array($class, self::VIDEO_EVERY_FRAME, true) ? $found : $this->largestPerTrack($found);
                 $this->step($scanId, 'sam_track', ['prompt' => $prompt], ['tracks' => count(array_unique(array_column($found, 'object_id')))], $t);
@@ -243,8 +248,8 @@ final class Pipeline
     {
         $t = microtime(true);
         $res = SamTool::run('measure', ['image' => $image, 'reference' => "$dir/reference.json"]);
-        $usable = isset($res['px_per_cm']) && $res['reference_aspect_error'] <= 0.15;
-        $this->step($scanId, 'a4_scale', ['frame' => $frame['idx']], $res + ['usable' => $usable], $t);
+        $usable = ($res['usable'] ?? false) === true; // samtool checks shape, size, whiteness and scale
+        $this->step($scanId, 'a4_scale', ['frame' => $frame['idx']], $res, $t);
         if ($usable) {
             Db::pdo()->prepare("UPDATE frames SET px_per_cm = ?, scale_source = 'a4' WHERE id = ?")->execute([$res['px_per_cm'], $frame['id']]);
         }

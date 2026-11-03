@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "helpers" / "samtool"))
 import samtool  # noqa: E402
@@ -71,6 +71,46 @@ class Corridor(unittest.TestCase):
         corridor = samtool._corridor((200, 100), self.floor, None, [10, 60, 10, 99])
         self.assertTrue(corridor[80, 10])
         self.assertFalse(corridor[80, 150])
+
+
+class ReferenceCheck(unittest.TestCase):
+    """A4 plausibility: the kinds of false sheet seen in a real walkthrough must not set a scale."""
+
+    def image(self, fill=(240, 240, 238), box=(400, 300, 610, 597), size=(1440, 1920)):
+        img = Image.new("RGB", size, (60, 55, 50))
+        ImageDraw.Draw(img).rectangle(box, fill=fill)
+        mask = np.zeros((size[1], size[0]), dtype=bool)
+        mask[box[1]:box[3] + 1, box[0]:box[2] + 1] = True
+        return img, mask
+
+    def test_a_flat_white_a4_passes_with_the_right_scale(self):
+        check = samtool._check_reference(*self.image())  # 211 x 298 px: A4 at 10 px/cm
+        self.assertTrue(check["usable"], check["reasons"])
+        self.assertAlmostEqual(check["px_per_cm"], 10, delta=0.2)
+
+    def test_small_far_blob_like_scan_7_is_rejected(self):
+        # About 3.4 px/cm: an A4-shaped white patch only 70 x 100 px.
+        check = samtool._check_reference(*self.image(box=(400, 300, 470, 400)))
+        self.assertFalse(check["usable"])
+        self.assertTrue(any("covers only" in r for r in check["reasons"]))
+        self.assertTrue(any("implausible scale" in r for r in check["reasons"]))
+
+    def test_grey_or_coloured_patch_is_rejected(self):
+        self.assertFalse(samtool._check_reference(*self.image(fill=(120, 120, 120)))["usable"])
+        self.assertFalse(samtool._check_reference(*self.image(fill=(240, 200, 60)))["usable"])
+
+    def test_wrong_shape_is_rejected(self):
+        check = samtool._check_reference(*self.image(box=(400, 300, 700, 400)))  # 3:1, not A4
+        self.assertFalse(check["usable"])
+        self.assertTrue(any("off A4" in r for r in check["reasons"]))
+
+
+class LongestRun(unittest.TestCase):
+    def test_counts_consecutive_frames_only(self):
+        self.assertEqual(samtool._longest_run([5]), 1)
+        self.assertEqual(samtool._longest_run([1, 2, 3, 7, 8]), 3)
+        self.assertEqual(samtool._longest_run([9, 3, 4, 3]), 2)
+        self.assertEqual(samtool._longest_run([]), 0)
 
 
 class PdfFont(unittest.TestCase):
