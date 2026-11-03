@@ -144,11 +144,21 @@ final class MetaClient
         return $res['output'] ?? [];
     }
 
-    /** Same as sparkJson, with images the model looks at. */
-    public function sparkVisionJson(string $system, string $user, array $imagePaths, string $name, array $schema): array
+    /**
+     * Same as sparkJson, with images the model looks at.
+     *
+     * @param string|null $imageKey identifies the images for the cache instead of their bytes. Pass it for
+     *                              images this app derives itself (crops), because image libraries encode the
+     *                              same picture into different bytes on different hosts.
+     */
+    public function sparkVisionJson(string $system, string $user, array $imagePaths, string $name, array $schema, ?string $imageKey = null): array
     {
         $hashes = implode('|', array_map('sha1_file', $imagePaths));
-        $cache = $this->cachePath('spark', $system . '|' . $user . '|' . $hashes . '|' . json_encode($schema), 'json');
+        $cache = $this->cachePath('spark', $system . '|' . $user . '|' . ($imageKey ?? $hashes) . '|' . json_encode($schema), 'json');
+        $byBytes = $this->cachePath('spark', $system . '|' . $user . '|' . $hashes . '|' . json_encode($schema), 'json');
+        if (!is_file($cache) && $imageKey !== null && is_file($byBytes)) {
+            copy($byBytes, $cache); // answers cached before $imageKey existed carry over
+        }
         if (is_file($cache)) {
             return json_decode((string) file_get_contents($cache), true);
         }

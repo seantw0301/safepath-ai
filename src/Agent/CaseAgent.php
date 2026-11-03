@@ -125,14 +125,26 @@ TXT;
                 'properties' => ['is_real' => ['type' => 'boolean'], 'observation' => ['type' => 'string']],
                 'required' => ['is_real', 'observation'],
                 'additionalProperties' => false,
-            ]
+            ],
+            self::cropKey($this->framePath($h), json_decode((string) $h['bounds_json'], true))
         );
+    }
+
+    /** The crop's identity is its source photo and box, not the JPEG bytes GD happens to write on this host. */
+    public static function cropKey(string $sourcePath, array $bounds): string
+    {
+        return 'crop:' . sha1_file($sourcePath) . ':' . implode(',', array_map(static fn ($v) => (int) round((float) $v), $bounds));
+    }
+
+    private function framePath(array $h): string
+    {
+        $frame = Scans::rows('SELECT blurred_path FROM frames WHERE scan_id = ? AND idx = ?', [$this->scanId, $h['frame_idx']])[0];
+        return Pipeline::root() . '/' . $frame['blurred_path'];
     }
 
     private function crop(array $h): string
     {
-        $frame = Scans::rows('SELECT blurred_path FROM frames WHERE scan_id = ? AND idx = ?', [$this->scanId, $h['frame_idx']])[0];
-        $image = imagecreatefromjpeg(Pipeline::root() . '/' . $frame['blurred_path']);
+        $image = imagecreatefromjpeg($this->framePath($h));
         [$l, $t, $r, $b] = json_decode((string) $h['bounds_json'], true);
         $margin = (int) (max($r - $l, $b - $t) * 0.3);
         $x = max(0, (int) $l - $margin);

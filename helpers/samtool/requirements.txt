@@ -1,4 +1,4 @@
 meta-sam-parser==0.1.0
-pillow
-numpy
-reportlab
+pillow==13.0.0
+numpy==2.5.4
+reportlab==5.1.0

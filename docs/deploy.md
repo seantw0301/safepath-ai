@@ -1,6 +1,6 @@
 # Deployment
 
-For a generic Linux host. These steps were checked locally (sub-path, judge mode, demo seeding with no API key), but **have not yet been run on a real Linux server**.
+For a generic Linux host. These steps were checked locally (sub-path, judge mode, demo seeding with no API key) and in CI on Ubuntu, but **have not yet been run end to end on a real Linux server**.
 
 ## Requirements
 | Item | Version |
@@ -43,7 +43,12 @@ Set `APP_BASE_PATH=/safepath` and use the sub-path block in the sample config.
 
 There are no user accounts. **Do not put real family footage on a public host.**
 
-Demos replay from `samples/cache`, so seeding and viewing them needs no API key and costs nothing. With `LIVE_UPLOADS=0` you can leave `META_API_KEY` empty.
+Demos replay from `samples/cache`, so seeding and viewing them needs no API key and costs nothing, **as long as every model request is found in the cache**. A cache entry is keyed by its request, including the images it sends, so the images must come out identical on the host:
+- the demo photos, video and extracted frames are committed files, and the crops the agent inspects are keyed by their source photo and box;
+- the blurred evidence images are written by Pillow in `helpers/samtool`: keep the versions pinned in `helpers/samtool/requirements.txt`;
+- if any request misses the cache, seeding stops with "META_API_KEY missing". Then either set a key (it fills the gap, then costs nothing again) or check the Pillow and numpy versions.
+
+With `LIVE_UPLOADS=0` and a complete cache you can leave `META_API_KEY` empty.
 
 ## PDF font
 `samtool pdf` embeds the font at `PDF_FONT` (default: a macOS path). On Linux:
