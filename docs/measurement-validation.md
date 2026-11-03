@@ -38,7 +38,7 @@ Why 6.6 cm: the phone was still above the threshold, so the box covers the front
 What this means:
 - The tip fixes the scale (1.6% off instead of 7–15%).
 - Measuring a threshold needs its **front face only**: the phone at threshold height, looking straight at it. A box from above is not a height.
-- Not changed yet: adding "step" as a threshold prompt would have caught it here, but as a cut-off object it would be reported "unknown", which is the right outcome.
+- "step" has since been added as a threshold prompt; here it would now be reported as "found, please measure with a tape", because the box touches the photo edge.
 
 ## What we learned
 - **Width:** the doorway's bounding box came within −9% to +10% of the clear opening. Reading the frame mask's inner edges was worse (−14% to −21%), so it is not used.
@@ -47,12 +47,16 @@ What this means:
 - **Threshold:** 3.5 cm read as 3.8 cm. Both are above the 3 cm limit (code 202.2), so the direction was right, but the error is close to the gap between "bevel" and "ramp".
 - **No false alarms:** bags hanging on the wall, a washing machine, a towel, slippers and a box beside the path were all "off the walking path, noted only".
 
+## Limits of automatic threshold height
+Photos do not measure threshold height reliably yet: the box often includes the top surface (+88% on the retake), the threshold is often cut off by the photo edge, and errors of about 1 cm are as large as the gap between "bevel" (up to 3 cm) and "ramp".
+
 ## Changes made
-- A threshold within **±1 cm** of a limit (0.5 cm or 3 cm) is reported as **borderline, needs a manual measurement**: no red, no subsidy item, and the agent may only ask for a check. This is deliberately conservative: at 3.5 cm the verdict was right, but our error is the same size as the margin, so the app does not decide.
-- Every height shows **± 1.0 cm** and is labelled a reference value.
+- **A found threshold whose height can't be trusted** (no usable scale, cut off by the photo edge, or within ±1 cm of a limit) is reported as **"Threshold found, please measure the height with a tape"**, with how to measure it, and **no number**: no red, no subsidy item, and the agent may only ask for a check. This is deliberately conservative: at 3.5 cm the verdict was right, but our error is the same size as the margin, so the app does not decide.
+- A threshold height that is shown is labelled a reference value with **± 1.0 cm**.
+- "step" is now a threshold prompt (it found the threshold in the retake when "door threshold" did not).
 - Nothing is measured when it touches the photo's edge (not fully in view).
 - Door width is reported as the clear opening, from the doorway's bounding box, with an error of about ±10%.
-- Shooting tips: for a threshold, tape the A4 on the lower door frame next to it and shoot from low down; for a door width, tape it in the middle of the door, face the door straight on and get the whole door in view.
+- Shooting tips: for a threshold, tape the A4 on the lower door next to it, put the phone at threshold height and face its front; for a door width, tape it in the middle of the door, face the door straight on and get the whole door in view.
 - Upload applies the phone's EXIF rotation and strips metadata (including GPS).
 
 Not yet re-tested: photos taken with the new tips.

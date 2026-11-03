@@ -15,9 +15,9 @@ scripts/smoke.sh
 ```
 
 ## Measuring tips 拍攝指引
-- Threshold 門檻：A4 upright on the lower door frame next to the threshold; shoot from low down. A4 貼在門檻旁的門框下段，手機放低拍。
+- Threshold 門檻：A4 on the lower door next to it; phone at threshold height, facing its front. A4 貼在門檻旁的門片下段，手機放到門檻高度、正對門檻前面。
 - Door width 門寬：A4 in the middle of the door; face it straight on; whole door in view. A4 貼門片中央，手機正對，整扇門入鏡。
-- Sizes are reference values. A threshold within 1 cm of a limit is reported as borderline and needs a tape measure. 尺寸為參考值；門檻與界線相差 1 公分內，改判邊界值、需人工量測。
+- Sizes are reference values (door width about ±10%). When a threshold height isn't reliable (no scale, cut off, or within 1 cm of a limit), SafePath shows no number and asks for a tape measure. 尺寸為參考值（門寬約 ±10%）；門檻高度不可靠時（沒有比例尺、沒完整入鏡、或與界線相差 1 公分內），不顯示數字，改請你用捲尺量。
 
 ## Stack
 PHP 8.3+ (native, PSR-4) · MySQL 9.0.1 · ffmpeg · Python 3.12 helper with Meta's official `meta-sam-parser` · Meta Model API: SAM 3.1, Muse Spark, Muse Image (simulated scenes), Muse Voice Transcribe

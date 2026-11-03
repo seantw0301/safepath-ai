@@ -53,23 +53,20 @@ final class RuleEngine
     {
         $name = 'Door threshold';
         if ($pxPerCm === null) {
-            return $this->base('threshold', $name, 'construct', $o, 'unknown', ['沒有可用的比例尺，無法量高度；請把 A4 直貼在門檻旁的門框下段後補拍。', 'No usable scale, so the height is unknown. Tape an A4 sheet upright on the lower door frame next to the threshold and re-shoot.'], []);
+            return $this->tapeMeasure($o, ['沒有可用的比例尺', 'there is no usable scale']);
         }
         if ($this->cutOff($o['bounds'])) {
-            return $this->base('threshold', $name, 'construct', $o, 'unknown', ['門檻沒有完整入鏡，無法量高度；請整段入鏡後補拍。', 'The threshold is not fully in the photo, so the height is unknown. Re-shoot with all of it in view.'], []);
+            return $this->tapeMeasure($o, ['門檻沒有完整入鏡', 'the threshold is not fully in the photo']);
         }
         $cm = round(($o['bounds'][3] - $o['bounds'][1]) / $pxPerCm, 1);
         $r = $this->rules['threshold'];
         $margin = (float) $r['boundary_margin_cm'];
         $mobile = in_array($mobility, ['walker', 'wheelchair'], true);
-        $limit = $this->nearLimit($cm, [$r['bevel_over_cm'], $r['ramp_over_cm']], $margin);
-        if ($limit !== null) {
-            // Close to a limit, our error is large enough to flip the verdict: a person must measure it.
-            $h = $this->base('threshold', $name, 'construct', $o, 'unknown', [
-                sprintf('門檻高約 %.1f ± %.1f 公分（參考值），接近 %s 公分的界線，屬邊界值，需人工量測。', $cm, $margin, $this->num($limit)),
-                sprintf('Threshold about %.1f ± %.1f cm (reference value), close to the %s cm limit: a borderline case that needs a manual measurement.', $cm, $margin, $this->num($limit)),
-            ], []);
-        } elseif ($cm > $r['ramp_over_cm']) {
+        if ($this->nearLimit($cm, [$r['bevel_over_cm'], $r['ramp_over_cm']], $margin) !== null) {
+            // Close to a limit our error can flip the verdict, so no number is shown and nothing is decided.
+            return $this->tapeMeasure($o, ['高度接近規範界線，照片量測不足以判定', 'its height is too close to a limit for a photo to decide']);
+        }
+        if ($cm > $r['ramp_over_cm']) {
             $level = $mobile ? 'red' : 'yellow';
             $reason = [sprintf('門檻高約 %.1f ± %.1f 公分（參考值），超過 %.0f 公分，應設坡道。', $cm, $margin, $r['ramp_over_cm']), sprintf('Threshold about %.1f ± %.1f cm (reference value), above the %.0f cm reference for a ramp.', $cm, $margin, $r['ramp_over_cm'])];
         } elseif ($cm > $r['bevel_over_cm']) {
@@ -79,10 +76,19 @@ final class RuleEngine
             $level = 'green';
             $reason = [sprintf('門檻高約 %.1f ± %.1f 公分（參考值），在參考值內。', $cm, $margin), sprintf('Threshold about %.1f ± %.1f cm (reference value), within the reference.', $cm, $margin)];
         }
-        $h ??= $this->base('threshold', $name, 'construct', $o, $level, $reason, $level === 'green' ? [] : $this->thresholdCodes($cm, $mobility));
+        $h = $this->base('threshold', $name, 'construct', $o, $level, $reason, $level === 'green' ? [] : $this->thresholdCodes($cm, $mobility));
         $h['value_cm'] = $cm;
         $h['error_cm'] = $margin;
         return $h;
+    }
+
+    /** A threshold was found but its height can't be trusted: ask for a tape measure, and show no number. */
+    private function tapeMeasure(array $o, array $why): array
+    {
+        return $this->base('threshold', 'Door threshold', 'construct', $o, 'unknown', [
+            "偵測到門檻，請用捲尺量高度（{$why[0]}）：捲尺垂直立在走道地面，量到門檻最高點。",
+            "Threshold found. Please measure its height with a tape ({$why[1]}): stand the tape on the floor of the walkway and read it at the top of the threshold.",
+        ], []);
     }
 
     /** @return float|null the limit the value sits within $margin of */

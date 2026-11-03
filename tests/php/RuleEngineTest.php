@@ -58,9 +58,10 @@ final class RuleEngineTest extends TestCase
         $hazard = $this->thresholdOfCm($cm, 'wheelchair');
         self::assertSame('unknown', $hazard['level']);
         self::assertSame([], $hazard['codes']);
-        self::assertSame(1.0, $hazard['error_cm']);
-        self::assertStringContainsString('需人工量測', $hazard['note']);
-        self::assertStringContainsString('borderline', $hazard['note_en']);
+        self::assertNull($hazard['value_cm']);
+        self::assertStringContainsString('請用捲尺量高度', $hazard['note']);
+        self::assertStringContainsString('tape', $hazard['note_en']);
+        self::assertDoesNotMatchRegularExpression('/\d+(\.\d+)? ?(cm|公分)/u', $hazard['note'] . $hazard['note_en']);
     }
 
     public function testJustOutsideTheMarginIsDecidedAgain(): void
@@ -83,6 +84,7 @@ final class RuleEngineTest extends TestCase
         $hazard = $this->thresholdOfCm(8, 'walker', [300, 180]); // its bottom edge is the photo's bottom edge
         self::assertSame('unknown', $hazard['level']);
         self::assertNull($hazard['value_cm']);
+        self::assertStringContainsString('請用捲尺量高度', $hazard['note']);
         self::assertSame('red', $this->thresholdOfCm(8, 'walker', [1000, 1000])['level']);
     }
 
@@ -98,6 +100,7 @@ final class RuleEngineTest extends TestCase
         $hazard = $this->evaluate(['threshold' => [$this->object()]], null)[0];
         self::assertSame('unknown', $hazard['level']);
         self::assertNull($hazard['value_cm']);
+        self::assertStringContainsString('tape', $hazard['note_en']);
     }
 
     public static function subsidyBands(): array

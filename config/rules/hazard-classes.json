@@ -15,7 +15,8 @@
     },
     "threshold": {
       "prompts": [
-        "door threshold"
+        "door threshold",
+        "step"
       ]
     },
     "rug": {
