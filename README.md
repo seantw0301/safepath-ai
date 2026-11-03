@@ -6,6 +6,28 @@ Meta Global AI Developer Hackathon 2026 參賽作品（Indie Developer · Build 
 
 All code in this repository was written during the hackathon (from 2026-10-27).
 
+## How it works 流程
+```mermaid
+flowchart LR
+    A["📱 Film the home<br/>手機繞家拍攝<br/>(photos / walkthrough video)"] --> B["🔍 SAM 3.1<br/>text-prompted masks<br/>+ video tracking"]
+    B --> C["📏 Measure<br/>A4 sheet = scale<br/>door width · threshold height"]
+    C --> D["🚶 Rule engine<br/>walking-path check<br/>Taiwan accessibility code"]
+    D --> E["🤖 Muse Spark case agent<br/>checks each finding vs photo"]
+    E -->|doubtful| H["👤 Person reviews<br/>人工確認"]
+    E --> F["📄 Work orders + clearing list<br/>+ 長照居家無障礙補助草稿"]
+    F --> G["🔨 Repairs / clearing<br/>施工 · 清除"]
+    G --> R["🔁 Re-film same route<br/>施工後重拍"]
+    R --> V["✅ Muse Spark verify agent<br/>before vs after: red → green"]
+```
+
+| Stage | Code |
+|---|---|
+| prepare → segment → measure → assess → paperwork \| verify | [src/Job/Pipeline.php](src/Job/Pipeline.php) |
+| SAM 3.1 masks / tracking | [src/Vision/SamTool.php](src/Vision/SamTool.php) |
+| Rules (path check, limits) | [src/Rules/RuleEngine.php](src/Rules/RuleEngine.php) |
+| Agents | [src/Agent/CaseAgent.php](src/Agent/CaseAgent.php), [src/Agent/VerifyAgent.php](src/Agent/VerifyAgent.php) |
+| Subsidy draft | [src/Subsidy/SubsidyPack.php](src/Subsidy/SubsidyPack.php) |
+
 ## 快速開始
 ```bash
 scripts/install.sh   # PHP deps, samtool venv (Python 3.12), .env, DB migration
