@@ -9,6 +9,7 @@ Called by the PHP worker; every command prints JSON to stdout.
   samtool.py blur    --image IMG --objects person.json --out OUT.jpg
   samtool.py annotate --image IMG --spec spec.json --out OUT.jpg
   samtool.py pdf     --spec pack.json --out OUT.pdf
+  samtool.py normalize --image IN --out OUT.jpg
 """
 from __future__ import annotations
 
@@ -19,7 +20,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 from meta_sam_parser import (
     SegmentationBoxRecord,
     SegmentationMaskRecord,
@@ -347,6 +348,17 @@ def pdf(args: argparse.Namespace) -> dict:
     return {"out": args.out}
 
 
+MAX_SIDE = 1920
+
+
+def normalize(args: argparse.Namespace) -> dict:
+    """Phone photos store rotation in EXIF; apply it, drop metadata (GPS etc.), and cap the size."""
+    img = ImageOps.exif_transpose(Image.open(args.image)).convert("RGB")
+    img.thumbnail((MAX_SIDE, MAX_SIDE))
+    img.save(args.out, quality=90)
+    return {"out": args.out, "width": img.size[0], "height": img.size[1]}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(prog="samtool")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -384,8 +396,11 @@ def main() -> int:
     d = sub.add_parser("pdf")
     d.add_argument("--spec", required=True)
     d.add_argument("--out", required=True)
+    z = sub.add_parser("normalize")
+    z.add_argument("--image", required=True)
+    z.add_argument("--out", required=True)
     args = ap.parse_args()
-    handlers = {"parse": parse, "overlay": overlay, "measure": measure, "path": path, "blur": blur, "annotate": annotate, "pdf": pdf}
+    handlers = {"normalize": normalize, "parse": parse, "overlay": overlay, "measure": measure, "path": path, "blur": blur, "annotate": annotate, "pdf": pdf}
     result = handlers[args.cmd](args)
     print(json.dumps(result, ensure_ascii=False))
     return 0

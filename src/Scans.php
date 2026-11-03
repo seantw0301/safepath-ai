@@ -8,6 +8,7 @@ use RuntimeException;
 use SafePath\Infra\Db;
 use SafePath\Job\Pipeline;
 use SafePath\Job\Queue;
+use SafePath\Vision\SamTool;
 
 /** Creating scans and reading them back; shared by the API, web pages and the demo seeder. */
 final class Scans
@@ -36,7 +37,8 @@ final class Scans
         mkdir($dir, 0775, true);
         foreach ($photos as $i => $photo) {
             $to = sprintf('%s/%d.jpg', $dir, $i);
-            copy($photo['path'], $to);
+            // Applies the phone's EXIF rotation, strips metadata such as GPS, and caps the size.
+            SamTool::run('normalize', ['image' => $photo['path'], 'out' => $to]);
             $source = $photo['px_per_cm'] !== null ? 'simulated' : null;
             $pdo->prepare('INSERT INTO frames (scan_id, idx, path, room, px_per_cm, scale_source) VALUES (?, ?, ?, ?, ?, ?)')
                 ->execute([$scanId, $i, sprintf('storage/scans/%d/photos/%d.jpg', $scanId, $i), $photo['room'], $photo['px_per_cm'], $source]);
