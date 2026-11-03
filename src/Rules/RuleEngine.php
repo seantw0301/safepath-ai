@@ -11,6 +11,7 @@ namespace SafePath\Rules;
 final class RuleEngine
 {
     private array $rules;
+    private ?array $imageSize = null;
 
     public function __construct()
     {
@@ -20,8 +21,10 @@ final class RuleEngine
     /**
      * @param array<string, array> $d       objects by class (each with bounds, confidence, mask, on_path_ratio?)
      */
-    public function evaluate(array $d, ?float $pxPerCm, string $mobility): array
+    /** @param array{int, int}|null $imageSize width and height, to tell whether an object is fully in the photo */
+    public function evaluate(array $d, ?float $pxPerCm, string $mobility, ?array $imageSize = null): array
     {
+        $this->imageSize = $imageSize;
         $hazards = [];
         foreach ($d['threshold'] ?? [] as $o) {
             $hazards[] = $this->threshold($o, $pxPerCm, $mobility);
@@ -50,24 +53,63 @@ final class RuleEngine
     {
         $name = 'Door threshold';
         if ($pxPerCm === null) {
-            return $this->base('threshold', $name, 'construct', $o, 'unknown', ['沒有可用的比例尺，無法量高度；請把 A4 直貼門框後補拍。', 'No usable scale, so the height is unknown. Tape an A4 sheet upright on the door frame and re-shoot.'], []);
+            return $this->base('threshold', $name, 'construct', $o, 'unknown', ['沒有可用的比例尺，無法量高度；請把 A4 直貼在門檻旁的門框下段後補拍。', 'No usable scale, so the height is unknown. Tape an A4 sheet upright on the lower door frame next to the threshold and re-shoot.'], []);
+        }
+        if ($this->cutOff($o['bounds'])) {
+            return $this->base('threshold', $name, 'construct', $o, 'unknown', ['門檻沒有完整入鏡，無法量高度；請整段入鏡後補拍。', 'The threshold is not fully in the photo, so the height is unknown. Re-shoot with all of it in view.'], []);
         }
         $cm = round(($o['bounds'][3] - $o['bounds'][1]) / $pxPerCm, 1);
         $r = $this->rules['threshold'];
+        $margin = (float) $r['boundary_margin_cm'];
         $mobile = in_array($mobility, ['walker', 'wheelchair'], true);
-        if ($cm > $r['ramp_over_cm']) {
+        $limit = $this->nearLimit($cm, [$r['bevel_over_cm'], $r['ramp_over_cm']], $margin);
+        if ($limit !== null) {
+            // Close to a limit, our error is large enough to flip the verdict: a person must measure it.
+            $h = $this->base('threshold', $name, 'construct', $o, 'unknown', [
+                sprintf('門檻高約 %.1f ± %.1f 公分（參考值），接近 %s 公分的界線，屬邊界值，需人工量測。', $cm, $margin, $this->num($limit)),
+                sprintf('Threshold about %.1f ± %.1f cm (reference value), close to the %s cm limit: a borderline case that needs a manual measurement.', $cm, $margin, $this->num($limit)),
+            ], []);
+        } elseif ($cm > $r['ramp_over_cm']) {
             $level = $mobile ? 'red' : 'yellow';
-            $reason = [sprintf('門檻高約 %.1f 公分，超過 %.0f 公分（參考值應設坡道）。', $cm, $r['ramp_over_cm']), sprintf('Threshold about %.1f cm, above the %.0f cm reference for a ramp.', $cm, $r['ramp_over_cm'])];
+            $reason = [sprintf('門檻高約 %.1f ± %.1f 公分（參考值），超過 %.0f 公分，應設坡道。', $cm, $margin, $r['ramp_over_cm']), sprintf('Threshold about %.1f ± %.1f cm (reference value), above the %.0f cm reference for a ramp.', $cm, $margin, $r['ramp_over_cm'])];
         } elseif ($cm > $r['bevel_over_cm']) {
             $level = $mobility === 'wheelchair' ? 'red' : 'yellow';
-            $reason = [sprintf('門檻高約 %.1f 公分，超過 %.1f 公分（參考值應做斜角）。', $cm, $r['bevel_over_cm']), sprintf('Threshold about %.1f cm, above the %.1f cm reference for a bevel.', $cm, $r['bevel_over_cm'])];
+            $reason = [sprintf('門檻高約 %.1f ± %.1f 公分（參考值），超過 %.1f 公分，應做斜角。', $cm, $margin, $r['bevel_over_cm']), sprintf('Threshold about %.1f ± %.1f cm (reference value), above the %.1f cm reference for a bevel.', $cm, $margin, $r['bevel_over_cm'])];
         } else {
             $level = 'green';
-            $reason = [sprintf('門檻高約 %.1f 公分，在參考值內。', $cm), sprintf('Threshold about %.1f cm, within the reference.', $cm)];
+            $reason = [sprintf('門檻高約 %.1f ± %.1f 公分（參考值），在參考值內。', $cm, $margin), sprintf('Threshold about %.1f ± %.1f cm (reference value), within the reference.', $cm, $margin)];
         }
-        $h = $this->base('threshold', $name, 'construct', $o, $level, $reason, $level === 'green' ? [] : $this->thresholdCodes($cm, $mobility));
+        $h ??= $this->base('threshold', $name, 'construct', $o, $level, $reason, $level === 'green' ? [] : $this->thresholdCodes($cm, $mobility));
         $h['value_cm'] = $cm;
+        $h['error_cm'] = $margin;
         return $h;
+    }
+
+    /** @return float|null the limit the value sits within $margin of */
+    private function nearLimit(float $cm, array $limits, float $margin): ?float
+    {
+        foreach ($limits as $limit) {
+            if (abs($cm - $limit) <= $margin + 1e-9) {
+                return (float) $limit;
+            }
+        }
+        return null;
+    }
+
+    private function num(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.');
+    }
+
+    /** Touching the photo's edge means part of the object is outside it, so its size is unknown. */
+    private function cutOff(array $bounds): bool
+    {
+        if ($this->imageSize === null) {
+            return false;
+        }
+        $edge = (float) $this->rules['measurement']['edge_px'];
+        [$w, $h] = $this->imageSize;
+        return $bounds[0] <= $edge || $bounds[1] <= $edge || $bounds[2] >= $w - $edge || $bounds[3] >= $h - $edge;
     }
 
     /**
@@ -92,8 +134,8 @@ final class RuleEngine
 
     private function doorway(array $o, ?float $pxPerCm, string $mobility): ?array
     {
-        if ($pxPerCm === null) {
-            return null;
+        if ($pxPerCm === null || $this->cutOff($o['bounds'])) {
+            return null; // no width without a scale and the whole doorway in view
         }
         $cm = round(($o['bounds'][2] - $o['bounds'][0]) / $pxPerCm, 1);
         $r = $this->rules['doorway'];
@@ -101,10 +143,11 @@ final class RuleEngine
             return null; // too small to be a real full doorway measure, or already wide enough
         }
         $level = $mobility === 'wheelchair' ? 'red' : 'yellow'; // 80 cm is a screening floor: see config/rules/rules.json
+        // The doorway's bounding box is the clear opening, within about ±10% on real photos (docs/measurement-validation.md).
         $h = $this->base('doorway', 'Narrow doorway', 'construct', $o, $level,
             [
-                sprintf('門口淨寬約 %.1f 公分，低於篩檢參考值 %d 公分（規範 205.2.3 室內出入口門框間距 90 公分、504.2 廁所 80 公分）。', $cm, $r['min_clear_cm']),
-                sprintf('Doorway about %.1f cm wide, under the %d cm screening reference (code 205.2.3: 90 cm between door frames indoors; 504.2: 80 cm for toilets).', $cm, $r['min_clear_cm']),
+                sprintf('門洞淨寬約 %.1f 公分（參考值，誤差約 ±10%%），低於篩檢參考值 %d 公分（規範 205.2.3 室內出入口門框間距 90 公分、504.2 廁所 80 公分）。', $cm, $r['min_clear_cm']),
+                sprintf('Clear opening about %.1f cm (reference value, about ±10%%), under the %d cm screening reference (code 205.2.3: 90 cm between door frames indoors; 504.2: 80 cm for toilets).', $cm, $r['min_clear_cm']),
             ], ['FA38']);
         $h['value_cm'] = $cm;
         return $h;
@@ -146,6 +189,7 @@ final class RuleEngine
             'note_en' => $reason[1],
             'codes' => $codes,
             'value_cm' => null,
+            'error_cm' => null,
             'bounds' => $o['bounds'],
             'mask' => $o['mask'] ?? null,
             'confidence' => $o['confidence'] ?? null,

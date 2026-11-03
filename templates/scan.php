@@ -10,6 +10,7 @@ $hazards = $report['hazards'];
 $orders = $report['work_orders'];
 $clear = array_filter($orders, static fn ($w) => $w['kind'] === 'clear');
 $build = array_filter($orders, static fn ($w) => $w['kind'] === 'construct');
+$check = array_filter($orders, static fn ($w) => $w['kind'] === 'check');
 $noted = array_filter($hazards, static fn ($h) => $h['status'] === 'noted');
 $count = static fn (string $l) => count(array_filter($hazards, static fn ($h) => $h['level'] === $l));
 $media = static fn (int $sid, int $idx, string $f = 'overlay') => Url::to("/media/$sid?f=det/$idx/$f.jpg");
@@ -59,13 +60,18 @@ $isVideo = $scan['video_path'] !== null;
 <tr><th><?= $t('room') ?></th><th><?= $t('item') ?></th><th><?= $t('verdict') ?></th><th><?= $t('measured') ?></th><th><?= $t('why') ?></th></tr>
 <?php foreach ($hazards as $h): ?>
 <tr><td><?= $e($h['room']) ?></td><td><?= $e($h['name']) ?></td><td><span class="pill <?= $e($h['level']) ?>"><?= $e(strtoupper($h['level'])) ?></span></td>
-<td><?= $h['value_cm'] !== null ? sprintf('%.1f cm', $h['value_cm']) : '—' ?></td><td><?= $both($h['note_en'], $h['note']) ?></td></tr>
+<td><?= $h['value_cm'] !== null ? sprintf('%.1f', $h['value_cm']) . ($h['error_cm'] !== null ? sprintf(' ± %.1f', $h['error_cm']) : '') . ' cm' : '—' ?></td><td><?= $both($h['note_en'], $h['note']) ?></td></tr>
 <?php endforeach; ?>
 </table></div>
 
 <?php if ($clear !== []): ?>
 <h2><?= $t('clear') ?> <span class="muted small">(<?= $t('clear_d') ?>)</span></h2>
 <div class="card"><?php foreach ($clear as $w): ?><p style="margin:6px 0">☐ <?= $both($w['text_en'], $w['text']) ?></p><?php endforeach; ?></div>
+<?php endif; ?>
+
+<?php if ($check !== []): ?>
+<h2><?= $t('check') ?> <span class="muted small">(<?= $t('check_d') ?>)</span></h2>
+<div class="card"><?php foreach ($check as $w): ?><p style="margin:6px 0">📏 <?= $both($w['text_en'], $w['text']) ?></p><?php endforeach; ?></div>
 <?php endif; ?>
 
 <?php if ($build !== []): ?>

@@ -1,0 +1,1 @@
+<0f>0<|box;x1=29;y1=1488;x2=1439;y2=1624;w=1440;h=1920;c=0.6952381134033203|><|mask;x=0;y=0;c=0.6952381134033203;data=99,1024,!!!!#qCOlXg&p{8/jAK=O$srWTt07g%Qj64=Rr*9e/Le7{QmGx_2*!S]w&2*sc)bvIc&!/Cx?Mn8j8XD^tzvSClcZ$%xa!e8Q8TTuu=u/x+^zk*^?VVK`Y+G@$(YmpJp`L'Pdc)I9d:kYcFPV1[tLm46VHQmR:DQ1YXdjXaC=Y4juW.3Fxe:90!2X(f.Acyb@h&`R]oR0S_e`|>

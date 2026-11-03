@@ -14,6 +14,11 @@ scripts/dev.sh       # http://localhost:8080
 scripts/smoke.sh
 ```
 
+## Measuring tips 拍攝指引
+- Threshold 門檻：A4 upright on the lower door frame next to the threshold; shoot from low down. A4 貼在門檻旁的門框下段，手機放低拍。
+- Door width 門寬：A4 in the middle of the door; face it straight on; whole door in view. A4 貼門片中央，手機正對，整扇門入鏡。
+- Sizes are reference values. A threshold within 1 cm of a limit is reported as borderline and needs a tape measure. 尺寸為參考值；門檻與界線相差 1 公分內，改判邊界值、需人工量測。
+
 ## Stack
 PHP 8.3+ (native, PSR-4) · MySQL 9.0.1 · ffmpeg · Python 3.12 helper with Meta's official `meta-sam-parser` · Meta Model API: SAM 3.1, Muse Spark, Muse Image (simulated scenes), Muse Voice Transcribe
 

@@ -1,5 +1,6 @@
 <h1><?= $t('new_scan') ?></h1>
 <p class="muted"><?= $t('new_hint') ?></p>
+<ul class="muted small"><li><?= $t('tip_threshold') ?></li><li><?= $t('tip_door') ?></li><li><?= $t('tip_ref') ?></li></ul>
 <form id="f" class="card">
   <label for="name"><?= $t('f_name') ?></label><input id="name" name="name" required maxlength="100">
   <label for="mobility"><?= $t('f_mobility') ?></label>

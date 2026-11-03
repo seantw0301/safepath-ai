@@ -31,6 +31,7 @@ Rules:
 - Home environment and administrative paperwork only. Never give health or medical advice; never mention fall risk, diagnoses or treatment.
 - Never invent a number, price or code. Use only what the tools return.
 - Instructions are short and practical: what to do and where. Write instruction_zh in Traditional Chinese (Taiwan) and instruction_en in plain English.
+- A hazard with level "unknown" is not confirmed: its work order tells the family what to check or measure by hand, never to build or buy anything, and takes no subsidy code.
 - The finish summary is for the family, in 2-3 sentences: what to clear today and what needs construction. Do not describe your own process.
 TXT;
 
@@ -197,6 +198,9 @@ TXT;
         if (isset($this->drafted[$h['id']])) {
             throw new RuntimeException('this hazard already has a work order');
         }
+        if ($h['level'] === 'unknown' && $code !== null) {
+            throw new RuntimeException('this hazard is unconfirmed: ask for a manual check, with subsidy_code null');
+        }
         $this->insertOrder($h, $zh, $en, $code);
         return ['ok' => true];
     }
@@ -229,8 +233,10 @@ TXT;
 
     private function insertOrder(array $h, string $zh, string $en, ?string $code): void
     {
+        // An unconfirmed finding becomes a manual check, never construction or a subsidy item.
+        $kind = $h['level'] === 'unknown' ? 'check' : $h['action'];
         Db::pdo()->prepare('INSERT INTO work_orders (scan_id, hazard_id, item, location, kind, text, text_en, subsidy_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-            ->execute([$this->scanId, $h['id'], $h['name'], $h['room'], $h['action'], $zh, $en, $code]);
+            ->execute([$this->scanId, $h['id'], $h['name'], $h['room'], $kind, $zh, $en, $kind === 'check' ? null : $code]);
         $this->drafted[$h['id']] = true;
     }
 

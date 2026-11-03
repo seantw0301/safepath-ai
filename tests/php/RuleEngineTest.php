@@ -28,8 +28,7 @@ final class RuleEngineTest extends TestCase
         return [
             'tall, walker' => [18, 'walker', 'red'],
             'tall, unaided' => [18, 'independent', 'yellow'],
-            'bevel band, wheelchair' => [2, 'wheelchair', 'red'],
-            'bevel band, walker' => [2, 'walker', 'yellow'],
+            'just over the borderline, walker' => [5, 'walker', 'red'],
         ];
     }
 
@@ -41,11 +40,57 @@ final class RuleEngineTest extends TestCase
         self::assertSame((float) $cm, $hazards[0]['value_cm']);
     }
 
-    public function testThresholdAtTheBevelLimitIsGreenAndClaimsNoSubsidy(): void
+    private function thresholdOfCm(float $cm, string $mobility = 'walker', ?array $size = null): array
     {
-        $hazard = (new RuleEngine())->evaluate(['threshold' => [['bounds' => [0, 0, 100, 5], 'label' => 't']]], self::SCALE, 'wheelchair')[0];
-        self::assertSame('green', $hazard['level']);
+        $object = ['bounds' => [100, 100, 300, 100 + $cm * self::SCALE], 'label' => 't', 'confidence' => 0.9];
+        return (new RuleEngine())->evaluate(['threshold' => [$object]], self::SCALE, $mobility, $size)[0];
+    }
+
+    public static function borderline(): array
+    {
+        // Real-photo validation: 3.0 cm measured as 3.8 cm, so ±1 cm around each limit is not decided by the app.
+        return [[2.0], [2.5], [3.0], [3.8], [4.0], [0.0], [0.5], [1.5]];
+    }
+
+    #[DataProvider('borderline')]
+    public function testThresholdNearALimitAsksForAManualMeasurement(float $cm): void
+    {
+        $hazard = $this->thresholdOfCm($cm, 'wheelchair');
+        self::assertSame('unknown', $hazard['level']);
         self::assertSame([], $hazard['codes']);
+        self::assertSame(1.0, $hazard['error_cm']);
+        self::assertStringContainsString('需人工量測', $hazard['note']);
+        self::assertStringContainsString('borderline', $hazard['note_en']);
+    }
+
+    public function testJustOutsideTheMarginIsDecidedAgain(): void
+    {
+        self::assertSame('red', $this->thresholdOfCm(4.1)['level']);
+        self::assertSame('yellow', $this->thresholdOfCm(1.8)['level']);
+        self::assertSame('red', $this->thresholdOfCm(1.8, 'wheelchair')['level']);
+    }
+
+    public function testEveryMeasuredHeightIsLabelledAReferenceWithItsError(): void
+    {
+        $hazard = $this->thresholdOfCm(8);
+        self::assertSame(1.0, $hazard['error_cm']);
+        self::assertStringContainsString('參考值', $hazard['note']);
+        self::assertStringContainsString('± 1.0', $hazard['note_en']);
+    }
+
+    public function testThresholdCutOffByThePhotoEdgeHasNoHeight(): void
+    {
+        $hazard = $this->thresholdOfCm(8, 'walker', [300, 180]); // its bottom edge is the photo's bottom edge
+        self::assertSame('unknown', $hazard['level']);
+        self::assertNull($hazard['value_cm']);
+        self::assertSame('red', $this->thresholdOfCm(8, 'walker', [1000, 1000])['level']);
+    }
+
+    public function testDoorwayCutOffByThePhotoEdgeIsNotMeasured(): void
+    {
+        $door = ['bounds' => [0, 0, 700, 2000], 'label' => 'door', 'confidence' => 0.9];
+        self::assertSame([], (new RuleEngine())->evaluate(['doorway' => [$door]], self::SCALE, 'walker', [1440, 1920]));
+        self::assertNotSame([], (new RuleEngine())->evaluate(['doorway' => [$door]], self::SCALE, 'walker'));
     }
 
     public function testNoScaleMeansUnknownAndNeverAGuessedNumber(): void

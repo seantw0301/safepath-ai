@@ -270,7 +270,8 @@ final class Pipeline
                 $detections['doorway'] = []; // the simulated scale assumes an 80 cm door, so measuring the door would be circular
             }
             $t = microtime(true);
-            $hazards = $engine->evaluate($detections, $scale, $scan['mobility']);
+            $size = getimagesize(self::root() . '/' . $frame['path']);
+            $hazards = $engine->evaluate($detections, $scale, $scan['mobility'], [$size[0], $size[1]]);
             if ($isVideo) {
                 // One walkthrough, one finding: a bar seen anywhere counts, and a missing bar is reported once.
                 $hazards = array_values(array_filter($hazards, static function ($h) use ($grabBarSeen, &$grabBarReported) {
@@ -284,9 +285,9 @@ final class Pipeline
             }
             $spec = ['items' => [], 'corridor' => is_file("$dir/corridor.png") ? "$dir/corridor.png" : null];
             foreach ($hazards as $h) {
-                $pdo->prepare('INSERT INTO hazards (scan_id, frame_idx, room, type, name, action, value_cm, level, status, note, note_en, bounds_json, evidence_json)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')->execute([
-                    $scanId, $frame['idx'], $frame['room'], $h['type'], $h['name'], $h['action'], $h['value_cm'], $h['level'],
+                $pdo->prepare('INSERT INTO hazards (scan_id, frame_idx, room, type, name, action, value_cm, error_cm, level, status, note, note_en, bounds_json, evidence_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')->execute([
+                    $scanId, $frame['idx'], $frame['room'], $h['type'], $h['name'], $h['action'], $h['value_cm'], $h['error_cm'], $h['level'],
                     $h['action'] === 'noted' ? 'noted' : 'open', $h['note'], $h['note_en'], json_encode($h['bounds']),
                     json_encode(['codes' => $h['codes'], 'confidence' => $h['confidence'], 'on_path_ratio' => $h['on_path_ratio'] ?? null]),
                 ]);
