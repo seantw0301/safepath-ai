@@ -167,22 +167,23 @@ final class Api
     }
 
     /** A person can overrule a verdict; the reason is kept. */
-    public static function overrideHazard(array $p): void
+    public static function overrideHazard(array $p, ?string $body = null): void
     {
-        $in = json_decode((string) file_get_contents('php://input'), true) ?? [];
+        $rows = Scans::rows('SELECT level, scan_id FROM hazards WHERE id = ?', [(int) $p['id']]);
+        $scan = $rows === [] ? null : Scans::get((int) $rows[0]['scan_id']);
+        if ($scan === null || !Access::canView($scan)) { // a hazard left over from a deleted scan counts as missing
+            Response::json(['error' => 'hazard_not_found'], 404);
+            return;
+        }
+        if (!Access::canEdit($scan)) {
+            Response::json(['error' => 'read_only'], 403);
+            return;
+        }
+        $in = json_decode($body ?? (string) file_get_contents('php://input'), true) ?? [];
         $level = (string) ($in['level'] ?? '');
         $reason = trim((string) ($in['reason'] ?? ''));
         if (!in_array($level, ['red', 'yellow', 'green', 'unknown'], true) || $reason === '') {
             Response::json(['error' => 'level_and_reason_required'], 422);
-            return;
-        }
-        $rows = Scans::rows('SELECT level, scan_id FROM hazards WHERE id = ?', [(int) $p['id']]);
-        if ($rows === []) {
-            Response::json(['error' => 'hazard_not_found'], 404);
-            return;
-        }
-        if (!Access::canEdit(Scans::get((int) $rows[0]['scan_id']))) {
-            Response::json(['error' => 'read_only'], 403);
             return;
         }
         Db::pdo()->prepare('INSERT INTO hazard_overrides (hazard_id, old_level, new_level, reason) VALUES (?, ?, ?, ?)')
@@ -206,6 +207,10 @@ final class Api
     public static function voice(array $p): void
     {
         if (self::refused()) {
+            return;
+        }
+        if (Scans::rows('SELECT id FROM households WHERE id = ?', [(int) $p['id']]) === []) {
+            Response::json(['error' => 'household_not_found'], 404);
             return;
         }
         $profile = self::readVoice();

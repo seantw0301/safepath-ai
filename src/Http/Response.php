@@ -6,8 +6,12 @@ namespace SafePath\Http;
 
 final class Response
 {
+    /** Last status sent; lets tests check it, since the CLI has no HTTP status. */
+    public static int $lastStatus = 0;
+
     public static function json(mixed $data, int $status = 200): void
     {
+        self::$lastStatus = $status;
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

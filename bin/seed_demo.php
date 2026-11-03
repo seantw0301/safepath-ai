@@ -24,6 +24,13 @@ $photos = static function (string $phase) use ($manifest, $dir): array {
     return $out;
 };
 
+// Remove old demo scans with everything that hangs off them, so no orphan rows are left behind.
+$old = 'SELECT id FROM scans WHERE is_demo = 1';
+foreach (['hazard_overrides' => 'hazard_id IN (SELECT id FROM hazards WHERE scan_id IN (%s))', 'hazards' => 'scan_id IN (%s)', 'work_orders' => 'scan_id IN (%s)',
+    'subsidy_packages' => 'scan_id IN (%s)', 'frames' => 'scan_id IN (%s)', 'jobs' => 'scan_id IN (%s)', 'scan_steps' => 'scan_id IN (%s)'] as $table => $where) {
+    Db::pdo()->exec("DELETE FROM $table WHERE " . sprintf($where, $old));
+}
+Db::pdo()->exec('DELETE FROM households WHERE id IN (SELECT household_id FROM scans WHERE is_demo = 1)');
 Db::pdo()->exec('DELETE FROM scans WHERE is_demo = 1');
 $worker = new Worker();
 foreach ([['Demo home A (walker)', 'walker', 4, 3], ['Demo home B (wheelchair)', 'wheelchair', 6, 2]] as [$name, $mobility, $level, $category]) {

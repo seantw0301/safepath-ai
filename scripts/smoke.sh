@@ -31,10 +31,13 @@ check overlay 200 "$BASE/media/$SCAN?f=det/0/overlay.jpg"
 check lang-zh 200 "$BASE/?lang=zh"
 check media-traversal 404 "$BASE/media/$SCAN?f=../../../.env"
 check missing-scan 404 "$BASE/api/scans/999999"
+check missing-scan-report 404 "$BASE/api/scans/999999/report"
+check missing-hazard 404 -X PATCH -d '{"level":"green","reason":"x"}' "$BASE/api/hazards/999999"
 # In judge mode these are refused before validation.
 if [ "${JUDGE_MODE:-0}" = "1" ]; then
   check uploads-refused 403 -X POST "$BASE/api/households"
-  check demo-read-only 403 -X PATCH -d '{"level":"green","reason":"x"}' "$BASE/api/hazards/1"
+  HAZARD=$(curl -fsS "$BASE/api/scans/$SCAN/report" | grep -oE '"hazards":\[\{"id":[0-9]+' | grep -oE '[0-9]+$')
+  check demo-read-only 403 -X PATCH -d '{"level":"green","reason":"x"}' "$BASE/api/hazards/$HAZARD"
 else
   check household-needs-name 422 -X POST "$BASE/api/households"
   check scan-needs-photos 422 -X POST "$BASE/api/households/1/scans"

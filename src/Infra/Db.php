@@ -10,6 +10,12 @@ final class Db
 {
     private static ?PDO $pdo = null;
 
+    /** Drops the connection, so the next call reconnects with the current settings (tests). */
+    public static function reset(): void
+    {
+        self::$pdo = null;
+    }
+
     /** mysql in production; sqlite is the zero-setup local fallback. */
     public static function driver(): string
     {
@@ -19,7 +25,7 @@ final class Db
     public static function pdo(): PDO
     {
         if (self::$pdo === null && self::driver() === 'sqlite') {
-            $path = dirname(__DIR__, 2) . '/storage/safepath.sqlite';
+            $path = Env::get('DB_SQLITE_PATH') ?: dirname(__DIR__, 2) . '/storage/safepath.sqlite';
             self::$pdo = new PDO('sqlite:' . $path, null, null, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
