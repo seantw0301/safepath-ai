@@ -8,12 +8,22 @@ check() { # name expected-status url
   [ "$code" = "$2" ] || { echo "FAIL $1: got $code, want $2"; exit 1; }
   echo "ok   $1"
 }
+page() { # name url: the page must render completely, not fail halfway
+  local body
+  body=$(curl -fsS "$2")
+  if echo "$body" | grep -q 'server_error' || ! echo "$body" | grep -q '</html>'; then echo "FAIL $1: page broke while rendering"; exit 1; fi
+  echo "ok   $1 renders"
+}
 curl -fsS "$BASE/health" | grep -q '"ok":true' && echo "ok   health"
 check home 200 "$BASE/"
 [ "${JUDGE_MODE:-0}" = "1" ] && check new-page-off 302 "$BASE/new" || check new-page 200 "$BASE/new"
 SCAN=$(curl -fsS "$BASE/" | grep -oE '/scans/[0-9]+' | head -1 | cut -d/ -f3)
 [ -n "$SCAN" ] || { echo "FAIL no demo scan: run php bin/seed_demo.php"; exit 1; }
 check scan-page 200 "$BASE/scans/$SCAN"
+page home-page "$BASE/"
+page scan-page "$BASE/scans/$SCAN"
+page scan-page-zh "$BASE/scans/$SCAN?lang=zh"
+[ "${JUDGE_MODE:-0}" = "1" ] || page new-page "$BASE/new"
 check report 200 "$BASE/api/scans/$SCAN/report"
 check work-orders 200 "$BASE/api/scans/$SCAN/work-orders"
 check pack-pdf 200 "$BASE/api/scans/$SCAN/pack.pdf"

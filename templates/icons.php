@@ -28,7 +28,7 @@ $icons = [
     'wheelchair' => '<circle cx="14" cy="4" r="2"/><path d="M14 7v6h5l2 5M14 10h-4"/><path d="M10 10a6 6 0 1 0 6 8"/>',
     'image' => '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>',
 ];
-$i = static fn (string $n, string $c = '') => '<svg class="ic ' . $c . '" aria-hidden="true"><use href="#i-' . $n . '"/></svg>';
+$icon = static fn (string $n, string $c = '') => '<svg class="ic ' . $c . '" aria-hidden="true"><use href="#i-' . $n . '"/></svg>';
 $sprite = '<svg width="0" height="0" style="position:absolute" aria-hidden="true">';
 foreach ($icons as $n => $p) {
     $sprite .= '<symbol id="i-' . $n . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' . $p . '</symbol>';

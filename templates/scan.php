@@ -19,15 +19,15 @@ $isSam = static fn ($st) => in_array($st['tool'], ['sam_segment', 'sam_track'], 
 $isVideo = $scan['video_path'] !== null;
 $pillIcon = static fn (string $l) => ['red' => 'alert', 'yellow' => 'warn', 'green' => 'check'][$l] ?? 'help';
 ?>
-<p class="small"><a href="<?= $u('/') ?>"><?= $i('back') ?> <?= $t('home') ?></a></p>
+<p class="small"><a href="<?= $u('/') ?>"><?= $icon('back') ?> <?= $t('home') ?></a></p>
 <h1><?= $e($scan['household']) ?></h1>
-<p class="muted"><?= $i($scan['mobility'] === 'wheelchair' ? 'wheelchair' : 'user') ?> <?= $t('m_' . $scan['mobility']) ?> · #<?= $id ?></p>
-<?php if ($scan['simulated']): ?><div class="banner"><?= $i('info') ?><span><?= $t('sim_scan') ?></span></div><?php endif; ?>
+<p class="muted"><?= $icon($scan['mobility'] === 'wheelchair' ? 'wheelchair' : 'user') ?> <?= $t('m_' . $scan['mobility']) ?> · #<?= $id ?></p>
+<?php if ($scan['simulated']): ?><div class="banner"><?= $icon('info') ?><span><?= $t('sim_scan') ?></span></div><?php endif; ?>
 
 <?php if ($scan['status'] === 'failed'): ?>
-  <div class="banner"><?= $i('alert') ?><span><b><?= $t('failed') ?></b> <?= $e($scan['error']) ?></span></div>
+  <div class="banner"><?= $icon('alert') ?><span><b><?= $t('failed') ?></b> <?= $e($scan['error']) ?></span></div>
 <?php elseif ($busy): ?>
-  <div class="card"><?= $i('refresh') ?> <b><?= $t('analysing') ?></b> <span id="st" class="muted" role="status"><?= $e($scan['status']) ?></span></div>
+  <div class="card"><?= $icon('refresh') ?> <b><?= $t('analysing') ?></b> <span id="st" class="muted" role="status"><?= $e($scan['status']) ?></span></div>
   <script>
   setInterval(async () => {
     const s = await (await fetch(<?= json_encode($u("/api/scans/$id")) ?>)).json();
@@ -38,16 +38,16 @@ $pillIcon = static fn (string $l) => ['red' => 'alert', 'yellow' => 'warn', 'gre
 <?php else: ?>
 
 <div class="card kpi">
-  <div class="cr"><?= $i('alert') ?><span><b><?= $count('red') ?></b><span class="small muted"><?= $t('red') ?></span></span></div>
-  <div class="c3"><?= $i('warn') ?><span><b><?= $count('yellow') ?></b><span class="small muted"><?= $t('yellow') ?></span></span></div>
-  <div class="cg"><?= $i('help') ?><span><b><?= $count('unknown') ?></b><span class="small muted"><?= $t('unknown') ?></span></span></div>
-  <div class="c5"><?= $i('check') ?><span><b><?= count($noted) ?></b><span class="small muted"><?= $t('noted') ?></span></span></div>
+  <div class="cr"><?= $icon('alert') ?><span><b><?= $count('red') ?></b><span class="small muted"><?= $t('red') ?></span></span></div>
+  <div class="c3"><?= $icon('warn') ?><span><b><?= $count('yellow') ?></b><span class="small muted"><?= $t('yellow') ?></span></span></div>
+  <div class="cg"><?= $icon('help') ?><span><b><?= $count('unknown') ?></b><span class="small muted"><?= $t('unknown') ?></span></span></div>
+  <div class="c5"><?= $icon('check') ?><span><b><?= count($noted) ?></b><span class="small muted"><?= $t('noted') ?></span></span></div>
 </div>
 <?php if (!empty($report['summary']['summary_en'])): ?>
 <div class="card"><?= $both($report['summary']['summary_en'], $report['summary']['summary_zh']) ?></div>
 <?php endif; ?>
 
-<h2><?= $i('eye') ?><?= $t('found') ?></h2>
+<h2><?= $icon('eye') ?><?= $t('found') ?></h2>
 <?php if ($isVideo): ?>
   <?php $tracks = 0; foreach ($report['steps'] as $st) { if ($st['tool'] === 'sam_track') { $tracks += (int) (json_decode((string) $st['output_json'], true)['tracks'] ?? 0); } } ?>
   <div class="card small"><?= sprintf($t('tracked'), $tracks, (int) $scan['video_frames']) ?><?= $scan['simulated'] ? ' ' . $t('sim_video') : '' ?></div>
@@ -60,29 +60,29 @@ $pillIcon = static fn (string $l) => ['red' => 'alert', 'yellow' => 'warn', 'gre
 <div class="card tablewrap"><table>
 <tr><th><?= $t('room') ?></th><th><?= $t('item') ?></th><th><?= $t('verdict') ?></th><th><?= $t('measured') ?></th><th><?= $t('why') ?></th></tr>
 <?php foreach ($hazards as $h): ?>
-<tr><td><?= $e($h['room']) ?></td><td><?= $e($h['name']) ?></td><td><span class="pill <?= $e($h['level']) ?>"><?= $i($pillIcon($h['level'])) ?><?= $e(strtoupper($h['level'])) ?></span></td>
+<tr><td><?= $e($h['room']) ?></td><td><?= $e($h['name']) ?></td><td><span class="pill <?= $e($h['level']) ?>"><?= $icon($pillIcon($h['level'])) ?><?= $e(strtoupper($h['level'])) ?></span></td>
 <td><?= $h['value_cm'] !== null ? sprintf('%.1f', $h['value_cm']) . ($h['error_cm'] !== null ? sprintf(' ± %.1f', $h['error_cm']) : '') . ' cm' : '—' ?></td><td><?= $both($h['note_en'], $h['note']) ?></td></tr>
 <?php endforeach; ?>
 </table></div>
 
 <?php if ($clear !== []): ?>
-<h2><?= $i('list') ?><?= $t('clear') ?> <span class="muted small">(<?= $t('clear_d') ?>)</span></h2>
+<h2><?= $icon('list') ?><?= $t('clear') ?> <span class="muted small">(<?= $t('clear_d') ?>)</span></h2>
 <div class="card"><?php foreach ($clear as $w): ?><p style="margin:6px 0">☐ <?= $both($w['text_en'], $w['text']) ?></p><?php endforeach; ?></div>
 <?php endif; ?>
 
 <?php if ($check !== []): ?>
-<h2><?= $i('ruler') ?><?= $t('check') ?> <span class="muted small">(<?= $t('check_d') ?>)</span></h2>
+<h2><?= $icon('ruler') ?><?= $t('check') ?> <span class="muted small">(<?= $t('check_d') ?>)</span></h2>
 <div class="card"><?php foreach ($check as $w): ?><p style="margin:6px 0">📏 <?= $both($w['text_en'], $w['text']) ?></p><?php endforeach; ?></div>
 <?php endif; ?>
 
 <?php if ($build !== []): ?>
-<h2><?= $i('wrench') ?><?= $t('orders') ?></h2>
+<h2><?= $icon('wrench') ?><?= $t('orders') ?></h2>
 <div class="card"><?php foreach ($build as $w): ?><p style="margin:6px 0"><b><?= $e($w['subsidy_code']) ?></b> <?= $both($w['text_en'], $w['text']) ?></p><?php endforeach; ?></div>
 <?php endif; ?>
 
 <?php if (($s = $report['subsidy']) !== null && $s['items'] !== []): ?>
-<h2><?= $i('money') ?><?= $t('draft') ?></h2>
-<div class="banner"><?= $i('alert') ?><span><?= $t('draft_warn') ?></span></div>
+<h2><?= $icon('money') ?><?= $t('draft') ?></h2>
+<div class="banner"><?= $icon('alert') ?><span><?= $t('draft_warn') ?></span></div>
 <div class="card tablewrap"><table>
 <tr><th><?= $t('code') ?></th><th><?= $t('official') ?></th><th><?= $t('where') ?></th><th><?= $t('cap') ?></th><th><?= $t('share') ?></th></tr>
 <?php foreach ($s['items'] as $i): ?>
@@ -91,14 +91,14 @@ $pillIcon = static fn (string $l) => ['red' => 'alert', 'yellow' => 'warn', 'gre
 </table>
 <p class="small"><?= sprintf($t('total'), number_format($s['total_cap_ntd']), number_format($s['quota_ntd']), (int) $s['copay_percent'], number_format($s['copay_total_ntd'])) ?><?= $s['has_per_length_item'] ? ' · ' . $t('per_length') : '' ?></p>
 <p class="muted small"><?= $t('source') ?>: <a href="<?= $e($s['source_url']) ?>" rel="noopener"><?= $e($s['source']) ?></a></p>
-<p><a class="btn" href="<?= $u("/api/scans/$id/pack.pdf") ?>" target="_blank"><?= $i('download') ?><?= $t('open_pdf') ?></a></p></div>
+<p><a class="btn" href="<?= $u("/api/scans/$id/pack.pdf") ?>" target="_blank"><?= $icon('download') ?><?= $t('open_pdf') ?></a></p></div>
 <?php endif; ?>
 
 <?php if ($scan['parent_scan_id'] === null): ?>
-<h2><?= $i('refresh') ?><?= $t('verify') ?></h2>
+<h2><?= $icon('refresh') ?><?= $t('verify') ?></h2>
 <?php if ($verify !== null): ?>
   <?php $results = $verify['summary']['verify'] ?? []; $fixedCount = count(array_filter($results, static fn ($r) => $r['status'] === 'verified_fixed')); $vid = (int) $verify['scan']['id']; ?>
-  <div class="card"><?= $i('check', 'okc') ?> <b><?= sprintf($t('verified_n'), $fixedCount, count($results)) ?></b> <span class="muted small"><a href="<?= $u("/scans/$vid") ?>"><?= $t('rescan') ?> #<?= $vid ?></a></span>
+  <div class="card"><?= $icon('check', 'okc') ?> <b><?= sprintf($t('verified_n'), $fixedCount, count($results)) ?></b> <span class="muted small"><a href="<?= $u("/scans/$vid") ?>"><?= $t('rescan') ?> #<?= $vid ?></a></span>
   <?php if (!empty($verify['summary']['summary_en'])): ?><p style="margin:8px 0 0"><?= $both($verify['summary']['summary_en'], $verify['summary']['summary_zh']) ?></p><?php endif; ?></div>
   <?php if (!$isVideo): ?>
   <div class="grid">
@@ -109,7 +109,7 @@ $pillIcon = static fn (string $l) => ['red' => 'alert', 'yellow' => 'warn', 'gre
         <img src="<?= $e($media($vid, (int) $after['idx'])) ?>" alt="<?= $t('after') ?>: <?= $e($f['room']) ?>">
         <img class="top" src="<?= $e($media($id, (int) $f['idx'])) ?>" alt="<?= $t('before') ?>: <?= $e($f['room']) ?>">
         <div class="bar"></div>
-        <span class="pill red tagL"><?= $i('alert') ?><?= $t('before') ?></span><span class="pill green tagR"><?= $i('check') ?><?= $t('after') ?></span>
+        <span class="pill red tagL"><?= $icon('alert') ?><?= $t('before') ?></span><span class="pill green tagR"><?= $icon('check') ?><?= $t('after') ?></span>
         <input type="range" min="0" max="100" value="50" aria-label="<?= $t('drag') ?>: <?= $e($f['room']) ?>" oninput="this.parentElement.style.setProperty('--pos', this.value + '%')">
       </div>
     </div>
@@ -119,7 +119,7 @@ $pillIcon = static fn (string $l) => ['red' => 'alert', 'yellow' => 'warn', 'gre
   <div class="card tablewrap"><table>
   <tr><th><?= $t('room') ?></th><th><?= $t('item') ?></th><th><?= $t('before') ?> → <?= $t('after') ?></th><th><?= $t('result') ?></th><th><?= $t('evidence') ?></th></tr>
   <?php foreach ($results as $r): ?>
-  <tr><td><?= $e($r['room']) ?></td><td><?= $e($r['name']) ?></td><td><span class="pill <?= $e($r['before']) ?>"><?= $i($pillIcon($r['before'])) ?><?= $e($r['before']) ?></span> → <span class="pill <?= $e($r['after']) ?>"><?= $i($pillIcon($r['after'])) ?><?= $e($r['after']) ?></span></td>
+  <tr><td><?= $e($r['room']) ?></td><td><?= $e($r['name']) ?></td><td><span class="pill <?= $e($r['before']) ?>"><?= $icon($pillIcon($r['before'])) ?><?= $e($r['before']) ?></span> → <span class="pill <?= $e($r['after']) ?>"><?= $icon($pillIcon($r['after'])) ?><?= $e($r['after']) ?></span></td>
   <td><?= $e(str_replace('_', ' ', $r['status'])) ?></td><td class="small"><?= $e($r['confirmation'] ?? ($r['status'] === 'verified_fixed' ? $t($isVideo ? 'gone_video' : 'gone') : '')) ?></td></tr>
   <?php endforeach; ?>
   </table></div>
@@ -134,7 +134,7 @@ $pillIcon = static fn (string $l) => ['red' => 'alert', 'yellow' => 'warn', 'gre
         <label for="rp<?= $i ?>"><?= $e($f['room']) ?></label><input id="rp<?= $i ?>" type="file" name="photos[]" accept="image/jpeg,image/png" required>
       <?php endforeach; ?>
     <?php endif; ?>
-    <p><button class="btn" type="submit"><?= $i('upload') ?><?= $t('verify_btn') ?></button> <span id="vm" class="muted" role="status"></span></p>
+    <p><button class="btn" type="submit"><?= $icon('upload') ?><?= $t('verify_btn') ?></button> <span id="vm" class="muted" role="status"></span></p>
   </form>
   <script>
   document.getElementById('v').addEventListener('submit', async (e) => {
@@ -147,12 +147,12 @@ $pillIcon = static fn (string $l) => ['red' => 'alert', 'yellow' => 'warn', 'gre
   </script>
 <?php endif; ?>
 <?php else: ?>
-<p class="small"><a href="<?= $u('/scans/' . (int) $scan['parent_scan_id']) ?>"><?= $i('back') ?> <?= $t('back') ?></a></p>
+<p class="small"><a href="<?= $u('/scans/' . (int) $scan['parent_scan_id']) ?>"><?= $icon('back') ?> <?= $t('back') ?></a></p>
 <?php endif; ?>
 
 <?php $agentSteps = array_values(array_filter($report['steps'], static fn ($st) => $st['agent'] === 'case_agent' || $st['agent'] === 'verify')); ?>
 <?php if ($agentSteps !== []): ?>
-<h2><?= $i('cpu') ?><?= $t('trace') ?> <span class="muted small">(<?= $t('trace_d') ?>)</span></h2>
+<h2><?= $icon('cpu') ?><?= $t('trace') ?> <span class="muted small">(<?= $t('trace_d') ?>)</span></h2>
 <div class="card tablewrap"><table>
 <tr><th>#</th><th><?= $t('tool') ?></th><th><?= $t('out') ?></th></tr>
 <?php foreach ($agentSteps as $n => $st): ?>

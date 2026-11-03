@@ -44,8 +44,8 @@ tr.err td{background:#fff4e0}.okc{color:var(--green)}
 <body>
 <header>
   <?= $sprite ?>
-  <a class="logo" href="<?= $u('/') ?>"><?= $i('shield') ?>SafePath AI</a><span class="tag"><?= $t('tagline') ?></span>
-  <span class="lang"><?php if (I18n::isZh()): ?><a href="<?= $e($here) ?>?lang=en"><?= $i('globe') ?>English</a><?php else: ?><a href="<?= $e($here) ?>?lang=zh"><?= $i('globe') ?>繁體中文</a><?php endif; ?></span>
+  <a class="logo" href="<?= $u('/') ?>"><?= $icon('shield') ?>SafePath AI</a><span class="tag"><?= $t('tagline') ?></span>
+  <span class="lang"><?php if (I18n::isZh()): ?><a href="<?= $e($here) ?>?lang=en"><?= $icon('globe') ?>English</a><?php else: ?><a href="<?= $e($here) ?>?lang=zh"><?= $icon('globe') ?>繁體中文</a><?php endif; ?></span>
 </header>
 <main><?php require $body; ?></main>
 </body>
