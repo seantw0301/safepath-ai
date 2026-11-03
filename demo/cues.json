@@ -4,70 +4,62 @@
   "cues": [
     {
       "at": 0,
-      "text": "Everything in this demo was built during the hackathon, from a fresh repo. These scenes are simulated."
+      "text": "Everything here was built during the hackathon. The doors and the hallway are from a real home; the other scenes are simulated, and labelled."
     },
     {
-      "at": 7,
-      "text": "A home can look fine and still block the way. For someone with a walker, who notices?"
+      "at": 8.8,
+      "text": "This bathroom threshold is three and a half centimetres. For someone with a walker, who notices?"
     },
     {
       "at": 15,
       "text": "SafePath: film the home, get it measured, get the paperwork, and prove the fix."
     },
     {
-      "at": 22,
-      "text": "Photos go to SAM 3.1, then a rule table, then a Muse Spark agent, then a draft subsidy package, then a re-shoot."
+      "at": 20,
+      "text": "Phone video goes to SAM 3.1, then a rule table, then a Muse Spark agent, then a draft subsidy package, then a re-shoot."
     },
     {
-      "at": 32,
-      "text": "These demo homes ran through the real pipeline. The photos are generated and the scale is assumed, and the page says so."
-    },
-    {
-      "at": 42,
-      "text": "SAM 3.1 finds each object from a plain text prompt. Its masks show exactly what it found."
+      "at": 29.5,
+      "text": "Real doors. SAM 3.1 finds the door, and an A4 sheet gives the scale. The front door reads 84.9 centimetres; the tape says 90. Our error is about ten percent, so a width is only a reference, plus or minus ten percent. The bathroom door runs off the photo, so the app reports no width at all."
     },
     {
       "at": 51,
-      "text": "SafePath finds the floor and draws the walking path. Shoes on the path are red. A box against the wall is only noted."
+      "text": "The bathroom threshold reads 3.8 centimetres, next to the 3 centimetre line. When our error is as big as the margin, SafePath does not decide. It asks for a tape measure. The tape says 3.5."
     },
     {
-      "at": 61,
-      "text": "With a walkthrough video, SAM 3.1 tracks each object across frames, so each one is counted once. This clip is simulated too."
+      "at": 65,
+      "text": "Real hallway, one walk-through video. SAM 3.1 tracks each object across the frames. A cable and two slippers lie on the walking path, so they are red. Bags against the wall are only noted."
     },
     {
-      "at": 70,
-      "text": "Verdicts come from a rule table, not from the model, so every number can be traced. A real A4 sheet on the door frame sets the scale. Here, it is only assumed."
+      "at": 80,
+      "text": "Verdicts come from a rule table, not from the model, so every number can be traced to a code article."
     },
     {
-      "at": 86,
-      "text": "Now the agent takes over. It looks at the photo of every finding before trusting it, and it looks up the allowed items."
+      "at": 86.8,
+      "text": "The agent looks at the photo of every finding before trusting it. SAM 3.1 scored this sticker 0.9 as shoes. The agent handed it to a person."
     },
     {
-      "at": 96,
-      "text": "SAM 3.1 scored this sticker 0.9 as shoes. The agent looked at the photo and handed it to a person instead."
+      "at": 98.2,
+      "text": "When a tool refuses a value, the agent corrects itself. In the real hallway, it wrote the word null as a subsidy code three times, was refused each time, and sent the work orders without one. It cannot change a number."
     },
     {
-      "at": 106,
-      "text": "When a tool refuses a value, the agent corrects itself. It cannot change a number."
+      "at": 113,
+      "text": "The family gets a clearing list for today, and work orders. Clutter needs no subsidy."
     },
     {
-      "at": 115,
-      "text": "The family gets a clearing list for today, and work orders."
+      "at": 118.6,
+      "text": "Construction items do. For a threshold ramp, SafePath drafts a Taiwan long-term-care subsidy package with official item codes and caps. It stays a draft until a care professional reviews it."
     },
     {
-      "at": 122,
-      "text": "And a draft Taiwan long-term-care subsidy package, with official item codes and caps. It stays a draft until a care professional approves it."
+      "at": 132.5,
+      "text": "After the fix, the same route is filmed again. The cable and both slippers are gone. Three of three items, verified fixed: red to green."
     },
     {
-      "at": 136,
-      "text": "After the fix, shoot again. Cleared items must be gone. Construction fixes must be seen: Muse Spark compares before and after, so a missed detection can't pass as a repair."
+      "at": 146.5,
+      "text": "Construction fixes must be seen. Muse Spark compares before and after, so a missed detection can't pass as a repair. This home is simulated."
     },
     {
-      "at": 153,
-      "text": "Eleven of eleven items verified in this simulated home, each with its evidence."
-    },
-    {
-      "at": 161,
+      "at": 157.5,
       "text": "SAM 3.1 sees and measures. Muse Spark does the paperwork. The code is public. See it. Fix it. Prove it."
     }
   ]
