@@ -11,21 +11,21 @@
 .out{position:absolute;font-size:17px;font-weight:700;white-space:nowrap}
 .legend{display:flex;gap:28px;font-size:19px;margin-top:16px;flex-wrap:wrap}.legend b{display:inline-block;width:18px;height:18px;border-radius:5px;vertical-align:-2px;margin-right:6px}
 </style>
-<h1>量測準確度 <small>Measured accuracy · 真實照片 vs 捲尺</small></h1>
-<p class="sub">誤差大的項目不硬報數字：寬度只當參考值、門高不報、門檻有疑慮就請人用捲尺量</p>
+<h1>Measured accuracy <small>real photos vs a tape measure · 量測準確度</small></h1>
+<p class="sub">Where error is large, SafePath doesn't force a number: widths are reference values, door height isn't reported, doubtful thresholds go to a tape measure</p>
 <div class="card">
 <div class="chart" id="c"></div>
-<div class="legend"><span><b style="background:#e5f5ef;border:2px dashed #8fcbb6"></b>±10% 參考值區間</span><span><b style="background:var(--brand)"></b>回報為參考值</span><span><b style="background:var(--yellow)"></b>改請人工量測</span><span><b style="background:var(--grey)"></b>不回報</span></div>
+<div class="legend"><span><b style="background:#e5f5ef;border:2px dashed #8fcbb6"></b>±10% reference band</span><span><b style="background:var(--brand)"></b>Reported as reference</span><span><b style="background:var(--yellow)"></b>Sent to a tape measure</span><span><b style="background:var(--grey)"></b>Not reported</span></div>
 </div>
-<p class="foot">資料：docs/measurement-validation.md（4 張大門照片＋浴室門＋門檻，捲尺實測對照）</p>
+<p class="foot">Source: docs/measurement-validation.md (4 front-door photos, a bathroom door and a threshold, checked with a tape measure)</p>
 <script>
 const rows=[
- ['大門淨寬（照片 2）','Front door opening',-9,'brand','82.2 cm'],
- ['大門淨寬（照片 3）','Front door opening',-6,'brand','84.2 cm'],
- ['浴室門淨寬','Bathroom door opening',10,'brand','71.8 cm'],
- ['門檻高度（正面）','Threshold, level shot',9,'brand','3.5 → 3.8 cm'],
- ['門檻高度（由上往下拍）','Threshold, from above',88,'yellow','3.5 → 6.6 cm → 捲尺'],
- ['門高','Door height',-20,'grey','常被裁切 → 不報'],
+ ['Front door opening (photo 2)','大門淨寬',-9,'brand','82.2 cm'],
+ ['Front door opening (photo 3)','大門淨寬',-6,'brand','84.2 cm'],
+ ['Bathroom door opening','浴室門淨寬',10,'brand','71.8 cm'],
+ ['Threshold, level shot','門檻高度（正面）',9,'brand','3.5 → 3.8 cm'],
+ ['Threshold, shot from above','門檻高度（由上往下拍）',88,'yellow','3.5 → 6.6 cm → tape measure'],
+ ['Door height','門高',-20,'grey','often cut off → not reported'],
 ];
 const min=-30,max=40,W=1600-96-60-420-40,x=v=>(v-min)/(max-min)*100;
 const c=document.getElementById('c');let h='<div class="ok" style="left:'+x(-10)+'%;width:'+(x(10)-x(-10))+'%"></div><div class="axis" style="left:'+x(0)+'%"></div>';

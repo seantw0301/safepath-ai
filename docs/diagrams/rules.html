@@ -13,29 +13,29 @@
 .door{display:flex;gap:22px;align-items:center}
 .meter{flex:1;height:30px;border-radius:99px;background:#e5f5ef;position:relative;overflow:hidden}.meter i{position:absolute;inset:0 auto 0 0;width:15%;background:var(--red)}
 </style>
-<h1>紅黃綠怎麼判定 <small>How verdicts are decided</small></h1>
-<p class="sub">依《建築物無障礙設施設計規範》參考值；量測誤差範圍內的一律標「需人工量測」</p>
+<h1>How verdicts are decided <small>紅黃綠怎麼判定</small></h1>
+<p class="sub">Reference values from Taiwan's accessibility design code; anything within measuring error goes to a person · 依《建築物無障礙設施設計規範》參考值</p>
 <div class="card">
- <h2>門檻高度 <small>Threshold height (cm)</small></h2>
+ <h2>Threshold height (cm) <small>門檻高度</small></h2>
  <div class="scale">
-  <div class="band" style="width:25%">邊界值（近 0.5 cm）<br>交人工用捲尺量</div>
-  <div style="width:8.3%;background:var(--yellow)">斜角</div>
-  <div class="band" style="width:33.3%">邊界值（近 3 cm）<br>交人工用捲尺量</div>
-  <div style="width:33.4%;background:var(--red)">應設坡道 Ramp</div>
+  <div class="band" style="width:25%">Borderline (near 0.5 cm)<br>measure by hand · 人工量測</div>
+  <div style="width:8.3%;background:var(--yellow)">Bevel<br>斜角</div>
+  <div class="band" style="width:33.3%">Borderline (near 3 cm)<br>measure by hand · 人工量測</div>
+  <div style="width:33.4%;background:var(--red)">Ramp needed · 應設坡道</div>
  </div>
  <div class="ticks"><span style="left:0">0</span><span style="left:8.3%">0.5</span><span style="left:25%">1.5</span><span style="left:33.3%">2</span><span style="left:50%">3</span><span style="left:66.7%">4</span><span style="left:100%;transform:translateX(-100%)">6+</span></div>
- <div class="legend"><span><b style="background:var(--green)"></b>規範：≤ 0.5 cm 不受限制</span><span><b style="background:var(--yellow)"></b>0.5–3 cm 作 1/2 斜角（規範 202.2）</span><span><b style="background:var(--red)"></b>&gt; 3 cm 應設坡道（202.2、206.1）</span><span><b class="band"></b>與 0.5／3 cm 相差 1 cm 內 → 人工量測（實測誤差 +0.3 cm）</span></div>
+ <div class="legend"><span><b style="background:var(--green)"></b>Code: ≤ 0.5 cm no limit</span><span><b style="background:var(--yellow)"></b>0.5–3 cm: 1/2 bevel (code 202.2)</span><span><b style="background:var(--red)"></b>&gt; 3 cm: ramp (202.2, 206.1)</span><span><b class="band"></b>Within 1 cm of 0.5 / 3 cm → tape measure (tested error +0.3 cm)</span></div>
 </div>
 <div class="two">
  <div class="card">
-  <h2>門洞淨寬 <small>Doorway clear width</small></h2>
-  <div class="door"><span class="big" style="color:var(--blue)">&lt; 80 cm</span><div>輪椅住戶 → <span class="pill" style="background:var(--red)">RED</span><br>助行器住戶 → <span class="pill" style="background:var(--yellow)">YELLOW</span></div></div>
-  <p style="color:var(--muted);font-size:18px;margin:10px 0 0">篩檢參考值（規範 504.2 廁所 80 cm、205.2.3 室內 90 cm），誤差約 ±10%</p>
+  <h2>Doorway clear width <small>門洞淨寬</small></h2>
+  <div class="door"><span class="big" style="color:var(--blue)">&lt; 80 cm</span><div>Wheelchair user → <span class="pill" style="background:var(--red)">RED</span><br>Walker user → <span class="pill" style="background:var(--yellow)">YELLOW</span></div></div>
+  <p style="color:var(--muted);font-size:18px;margin:10px 0 0">Screening reference (code 504.2: 80 cm for toilets; 205.2.3: 90 cm indoors); about ±10% error</p>
  </div>
  <div class="card">
-  <h2>行走動線 <small>Walking path</small></h2>
-  <div class="door"><span class="big" style="color:var(--red)">≥ 15%</span><div>物件壓在推估動線上<br>→ 列入清除清單</div></div>
-  <div class="door" style="margin-top:12px"><div class="meter"><i></i></div><span style="font-size:18px;color:var(--muted)">不在動線上 → 僅記錄 <span class="pill" style="background:var(--green)">GREEN</span></span></div>
+  <h2>Walking path <small>行走動線</small></h2>
+  <div class="door"><span class="big" style="color:var(--red)">≥ 15%</span><div>of an object on the walking path<br>→ goes on the clearing list · 列入清除清單</div></div>
+  <div class="door" style="margin-top:12px"><div class="meter"><i></i></div><span style="font-size:18px;color:var(--muted)">Off the path → noted only <span class="pill" style="background:var(--green)">GREEN</span></span></div>
  </div>
 </div>
-<p class="foot">參考值取自公共建築規範，非專業評估、對私人住宅不具拘束力。 · Reference values for screening, not a professional assessment.</p>
+<p class="foot">Reference values for home screening, taken from a code for public buildings; not a professional assessment. · 非專業評估，對私人住宅不具拘束力。</p>

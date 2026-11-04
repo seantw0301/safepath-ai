@@ -16,7 +16,7 @@
 </div>
 
 <h2><?= $icon('image') ?><?= $t('visual') ?></h2>
-<div class="card figure"><img src="<?= $u('/assets/flow.png') ?>" alt="<?= $e($t('img_flow')) ?>" width="2400" height="1140" loading="lazy"></div>
+<div class="card figure"><img src="<?= $u('/assets/flow.png') ?>" alt="<?= $e($t('img_flow')) ?>" width="2400" height="1200" loading="lazy"></div>
 <div class="card figure"><img src="<?= $u('/assets/rules.png') ?>" alt="<?= $e($t('img_rules')) ?>" width="2400" height="1320" loading="lazy"></div>
 <div class="card figure"><img src="<?= $u('/assets/accuracy.png') ?>" alt="<?= $e($t('img_accuracy')) ?>" width="2400" height="1170" loading="lazy"></div>
 

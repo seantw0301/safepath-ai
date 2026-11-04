@@ -2,7 +2,7 @@
 <style>
 .row{display:grid;grid-template-columns:repeat(4,1fr);gap:56px;position:relative}
 .n{background:#fff;border-radius:18px;border-top:8px solid var(--c);box-shadow:0 4px 16px #1f6f621f;padding:20px 20px 18px;position:relative;min-height:200px}
-.n .t{display:flex;gap:12px;align-items:center;font-weight:700;font-size:25px;margin-bottom:6px}
+.n .t{display:flex;gap:12px;align-items:center;font-weight:700;font-size:24px;margin-bottom:6px}
 .n .t svg{color:var(--c);background:var(--b);border-radius:12px;padding:8px;width:52px;height:52px}
 .n .no{position:absolute;top:-18px;right:16px;background:var(--c);color:#fff;border-radius:99px;width:38px;height:38px;display:grid;place-items:center;font-weight:700;font-size:20px}
 .n p{margin:0;font-size:19px;color:var(--muted)}.n .en{font-size:16px;color:#7b8581;margin-top:6px}
@@ -17,19 +17,19 @@
 .r2{direction:rtl}.r2>*{direction:ltr}
 .side{position:absolute;left:24%;top:-30px}
 </style>
-<h1>SafePath AI 流程圖 <small>How it works</small></h1>
-<p class="sub">從拍攝到驗證：看見擋路的東西 → 改善它 → 有證據才由紅轉綠</p>
+<h1>How SafePath AI works <small>流程圖</small></h1>
+<p class="sub">See what blocks the way → fix it → red turns green only with evidence · 看見擋路的東西，改善它，證明它</p>
 <div class="row r1">
- <div class="n c1"><span class="no">1</span><div class="t"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-4v12l-6-4"/></svg>手機拍攝</div><p>繞家走一圈拍照或錄影，A4 紙貼門框當比例尺</p><p class="en">Film the home; A4 sheet = scale</p></div>
- <div class="n c2"><span class="no">2</span><div class="t"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>SAM 3.1 偵測</div><p>用文字找出門檻、電線、地毯、雜物，影片中持續追蹤</p><p class="en">Text-prompted masks + video tracking</p><span class="tag">Meta SAM 3.1</span></div>
- <div class="n c3"><span class="no">3</span><div class="t"><svg viewBox="0 0 24 24"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0z"/><path d="m14.5 12.5 2-2M11.5 9.5l2-2M8.5 6.5l2-2M17.5 15.5l2-2"/></svg>量測＋規則判定</div><p>量門寬、門檻高，檢查行走動線；紅黃綠由規則表決定</p><p class="en">Measure; verdicts from a rule table</p></div>
- <div class="n c4"><span class="no">4</span><div class="t"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg>Muse Spark 複核</div><p>Agent 對照照片逐項檢查；有疑慮交給人工確認</p><p class="en">Case agent checks each finding</p><span class="tag">Meta Muse Spark</span></div>
+ <div class="n c1"><span class="no">1</span><div class="t"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-4v12l-6-4"/></svg>Film the home</div><p>Walk through with a phone; an A4 sheet on the door frame sets the scale</p><p class="en">手機繞家拍攝，A4 紙當比例尺</p></div>
+ <div class="n c2"><span class="no">2</span><div class="t"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>SAM 3.1 detects</div><p>Text prompts find thresholds, cables, rugs and clutter; tracked through video</p><p class="en">文字提示找出門檻、電線、地毯、雜物</p><span class="tag">Meta SAM 3.1</span></div>
+ <div class="n c3"><span class="no">3</span><div class="t"><svg viewBox="0 0 24 24"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0z"/><path d="m14.5 12.5 2-2M11.5 9.5l2-2M8.5 6.5l2-2M17.5 15.5l2-2"/></svg>Measure + rules</div><p>Door width, threshold height, walking path; red / yellow / green from a rule table</p><p class="en">量測並由規則表判定紅黃綠</p></div>
+ <div class="n c4"><span class="no">4</span><div class="t"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg>Muse Spark review</div><p>Case agent checks every finding against its photo; doubtful ones go to a person</p><p class="en">Agent 逐項對照照片，有疑慮交人工</p><span class="tag">Meta Muse Spark</span></div>
 </div>
-<div class="down"><span>產出文件</span></div>
+<div class="down"><span>Paperwork · 產出文件</span></div>
 <div class="row r2">
- <div class="n c5"><span class="no">5</span><div class="t"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>工單＋補助草稿</div><p>清除清單、施工工單、長照 2.0 居家無障礙補助申請草稿（PDF）</p><p class="en">Work orders + LTC 2.0 subsidy draft</p></div>
- <div class="n c7"><span class="no">6</span><div class="t"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></svg>施工・清除</div><p>家人清走雜物，師傅依工單施工</p><p class="en">Clear clutter, repair</p></div>
- <div class="n c1"><span class="no">7</span><div class="t"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>同路線重拍</div><p>施工後沿同一路線再拍一次</p><p class="en">Re-film the same route</p></div>
- <div class="n c6"><span class="no">8</span><div class="t"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg>驗證：紅 → 綠</div><p>Verify Agent 比對前後照片，有證據才轉綠</p><p class="en">Before vs after; green only with evidence</p><span class="tag">Meta Muse Spark</span></div>
+ <div class="n c5"><span class="no">5</span><div class="t"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>Work orders + subsidy</div><p>Clearing list, work orders and a draft LTC 2.0 home-accessibility subsidy pack (PDF)</p><p class="en">清除清單、工單、長照 2.0 補助草稿</p></div>
+ <div class="n c7"><span class="no">6</span><div class="t"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></svg>Clear + repair</div><p>Family clears clutter; contractor follows the work orders</p><p class="en">家人清雜物，師傅依工單施工</p></div>
+ <div class="n c1"><span class="no">7</span><div class="t"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Re-film</div><p>Film the same route again after the fix</p><p class="en">施工後沿同路線重拍</p></div>
+ <div class="n c6"><span class="no">8</span><div class="t"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg>Verify: red → green</div><p>Verify agent compares before and after; green only with evidence</p><p class="en">前後比對，有證據才轉綠</p><span class="tag">Meta Muse Spark</span></div>
 </div>
-<p class="foot">紅黃綠判定來自規則表，不由模型決定；邊界值一律交人工量測。 · Verdicts come from rules, not the model.</p>
+<p class="foot">Verdicts come from a rule table, not the model; borderline measurements go to a person with a tape measure. · 判定來自規則表，邊界值交人工量測。</p>

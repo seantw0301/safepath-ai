@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 CHROME="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
-for spec in flow:1600,760 rules:1600,880 accuracy:1600,780; do
+for spec in flow:1600,800 rules:1600,880 accuracy:1600,780; do
   name=${spec%%:*}; size=${spec#*:}
   "$CHROME" --headless=new --hide-scrollbars --force-device-scale-factor=2 --window-size="$size" \
     --screenshot="$PWD/public/assets/$name.png" "file://$PWD/docs/diagrams/$name.html" 2>/dev/null
