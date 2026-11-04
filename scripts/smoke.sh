@@ -42,7 +42,8 @@ if [ "${JUDGE_MODE:-0}" = "1" ]; then
   check demo-read-only 403 -X PATCH -d '{"level":"green","reason":"x"}' "$BASE/api/hazards/$HAZARD"
 else
   check household-needs-name 422 -X POST "$BASE/api/households"
-  check scan-needs-photos 422 -X POST "$BASE/api/households/1/scans"
+  HOME_ID=$(curl -fsS -X POST -d name=smoke "$BASE/api/households" | grep -oE '[0-9]+')
+  check scan-needs-photos 422 -X POST "$BASE/api/households/$HOME_ID/scans"
   check voice-needs-audio 422 -X POST "$BASE/api/voice"
 fi
 curl -fsS "$BASE/api/scans/$SCAN/report" | grep -q '"hazards"' && echo "ok   report-has-hazards"
