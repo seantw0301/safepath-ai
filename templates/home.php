@@ -8,6 +8,12 @@
 <?php endif; ?>
 </div>
 
+<h2><?= $icon('film') ?>Demo video <span class="muted small">示範影片 · 2:49</span></h2>
+<div class="card figure">
+  <div class="video"><iframe src="https://www.youtube-nocookie.com/embed/L1akx5FGETA?rel=0" title="SafePath AI demo video (2:49)" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+  <p class="small" style="margin:8px 4px 2px">Film a home, find what blocks the way, prepare the LTC 2.0 subsidy draft, and prove the fix: red turns green only with evidence.<br><span class="muted">拍攝住家、找出擋路的東西、備好長照 2.0 補助草稿，並以證據驗證改善：有證據才由紅轉綠。</span></p>
+</div>
+
 <h2><?= $icon('list') ?><?= $t('how') ?></h2>
 <div class="steps">
 <?php foreach ([1 => 'film', 2 => 'eye', 3 => 'ruler', 4 => 'file', 5 => 'check'] as $n => $name): ?>
