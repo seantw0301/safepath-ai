@@ -1,0 +1,7 @@
+:root{--ink:#1d2321;--muted:#5f6a66;--brand:#1f6f62;--brand2:#2a9d8f;--red:#c8303f;--yellow:#a86f00;--green:#1f8a70;--grey:#6f7875;--blue:#2f6fb5;--purple:#6b4bb0}
+*{box-sizing:border-box}html,body{margin:0}
+body{width:1600px;font:22px/1.4 "PingFang TC","Noto Sans TC",-apple-system,sans-serif;color:var(--ink);background:linear-gradient(135deg,#f3faf8,#eef4fb);padding:40px 48px}
+h1{margin:0 0 4px;font-size:38px;display:flex;align-items:center;gap:14px}h1 small{font-size:22px;color:var(--muted);font-weight:500}
+.sub{color:var(--muted);margin:0 0 28px;font-size:21px}
+svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.foot{color:var(--muted);font-size:17px;margin-top:22px}

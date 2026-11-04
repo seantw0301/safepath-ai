@@ -1,0 +1,36 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="_base.css">
+<style>
+.card{background:#fff;border-radius:18px;box-shadow:0 4px 16px #1f6f621f;padding:26px 30px}
+.chart{position:relative;margin-left:420px;margin-right:40px}
+.row{display:flex;align-items:center;height:64px;position:relative}
+.lbl{position:absolute;right:calc(100% + 20px);width:400px;text-align:right;font-size:20px;line-height:1.25}.lbl small{display:block;color:var(--muted);font-size:16px}
+.axis{position:absolute;top:0;bottom:0;width:2px;background:#9aa3a0}
+.ok{position:absolute;top:0;bottom:0;background:#e5f5ef;border-left:2px dashed #8fcbb6;border-right:2px dashed #8fcbb6}
+.bar{position:absolute;height:34px;border-radius:8px;display:flex;align-items:center;font-weight:700;font-size:19px;color:#fff;padding:0 10px}
+.ticks{position:relative;height:30px;color:var(--muted);font-size:17px}.ticks span{position:absolute;transform:translateX(-50%)}
+.out{position:absolute;font-size:17px;font-weight:700;white-space:nowrap}
+.legend{display:flex;gap:28px;font-size:19px;margin-top:16px;flex-wrap:wrap}.legend b{display:inline-block;width:18px;height:18px;border-radius:5px;vertical-align:-2px;margin-right:6px}
+</style>
+<h1>量測準確度 <small>Measured accuracy · 真實照片 vs 捲尺</small></h1>
+<p class="sub">誤差大的項目不硬報數字：寬度只當參考值、門高不報、門檻有疑慮就請人用捲尺量</p>
+<div class="card">
+<div class="chart" id="c"></div>
+<div class="legend"><span><b style="background:#e5f5ef;border:2px dashed #8fcbb6"></b>±10% 參考值區間</span><span><b style="background:var(--brand)"></b>回報為參考值</span><span><b style="background:var(--yellow)"></b>改請人工量測</span><span><b style="background:var(--grey)"></b>不回報</span></div>
+</div>
+<p class="foot">資料：docs/measurement-validation.md（4 張大門照片＋浴室門＋門檻，捲尺實測對照）</p>
+<script>
+const rows=[
+ ['大門淨寬（照片 2）','Front door opening',-9,'brand','82.2 cm'],
+ ['大門淨寬（照片 3）','Front door opening',-6,'brand','84.2 cm'],
+ ['浴室門淨寬','Bathroom door opening',10,'brand','71.8 cm'],
+ ['門檻高度（正面）','Threshold, level shot',9,'brand','3.5 → 3.8 cm'],
+ ['門檻高度（由上往下拍）','Threshold, from above',88,'yellow','3.5 → 6.6 cm → 捲尺'],
+ ['門高','Door height',-20,'grey','常被裁切 → 不報'],
+];
+const min=-30,max=40,W=1600-96-60-420-40,x=v=>(v-min)/(max-min)*100;
+const c=document.getElementById('c');let h='<div class="ok" style="left:'+x(-10)+'%;width:'+(x(10)-x(-10))+'%"></div><div class="axis" style="left:'+x(0)+'%"></div>';
+for(const [zh,en,v,col,note] of rows){const cv=Math.max(min,Math.min(max,v));const l=Math.min(x(0),x(cv)),w=Math.abs(x(cv)-x(0));
+ h+='<div class="row"><div class="lbl">'+zh+'<small>'+en+'</small></div><div class="bar" style="left:'+l+'%;width:'+w+'%;background:var(--'+col+');justify-content:'+(v<0?'flex-start':'flex-end')+'">'+(v>0?'+':'')+v+'%</div>'+
+ '<div class="out" style="color:var(--'+col+');'+(v<0?'left:calc('+(x(0))+'% + 10px)':(v>max?'left:calc('+x(0)+'% + 12px);color:#fff':'left:calc('+(x(cv))+'% + 10px)'))+'">'+note+'</div></div>';}
+c.innerHTML=h+'<div class="ticks">'+[-30,-20,-10,0,10,20,30,40].map(t=>'<span style="left:'+x(t)+'%">'+(t>0?'+':'')+t+'%</span>').join('')+'</div>';
+</script>

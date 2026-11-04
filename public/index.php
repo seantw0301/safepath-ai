@@ -30,6 +30,7 @@ $router->add('GET', '/', static fn () => Web::home());
 $router->add('GET', '/new', static fn () => Web::newScan());
 $router->add('GET', '/scans/{id}', Web::scan(...));
 $router->add('GET', '/media/{id}', Web::media(...));
+$router->add('GET', '/assets/{name}', Web::asset(...));
 
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 try {

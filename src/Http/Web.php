@@ -60,6 +60,18 @@ final class Web
         readfile($file);
     }
 
+    public static function asset(array $p): void
+    {
+        $file = Pipeline::root() . '/public/assets/' . $p['name'];
+        if (!preg_match('#^[a-z]+\.png$#', $p['name']) || !is_file($file)) {
+            http_response_code(404);
+            return;
+        }
+        header('Content-Type: image/png');
+        header('Cache-Control: public, max-age=86400');
+        readfile($file);
+    }
+
     private static function render(string $template, array $vars): void
     {
         extract($vars);
