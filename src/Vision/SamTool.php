@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace SafePath\Vision;
 
 use RuntimeException;
+use SafePath\Job\Queue;
 
 /** Runs helpers/samtool (official SAM parser + image work) and returns its JSON. */
 final class SamTool
 {
     public static function run(string $command, array $args, ?string $stdin = null): array
     {
+        Queue::beat();
         $root = dirname(__DIR__, 2);
         $cmd = [$root . '/helpers/samtool/.venv/bin/python', $root . '/helpers/samtool/samtool.py', $command];
         foreach ($args as $key => $value) {

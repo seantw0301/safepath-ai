@@ -6,6 +6,7 @@ namespace SafePath\Model;
 
 use RuntimeException;
 use SafePath\Infra\Env;
+use SafePath\Job\Queue;
 
 /** Thin client for Meta Model API (https://api.meta.ai/v1). The key is read from .env only and never logged. */
 final class MetaClient
@@ -232,6 +233,7 @@ final class MetaClient
 
     private function request(string $path, mixed $body, bool $json): array
     {
+        Queue::beat();
         $key = Env::get('META_API_KEY') ?: throw new RuntimeException('META_API_KEY missing in .env');
         $headers = ['Authorization: Bearer ' . $key];
         if ($json) {

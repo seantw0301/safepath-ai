@@ -60,3 +60,24 @@ Photos do not measure threshold height reliably yet: the box often includes the 
 - Upload applies the phone's EXIF rotation and strips metadata (including GPS).
 
 Not yet re-tested: photos taken with the new tips.
+
+## Known issues found on a real walkthrough video, and fixes (2026-11-04)
+### 1. A4 reported where there was none
+One evidence frame reported a usable A4 scale of 3.4 px/cm although no sheet was in view. The only check was the A4 shape.
+Now a sheet must pass all of these, or no size is given:
+
+| Check | Limit | Real A4 sheets measured |
+|---|---|---|
+| Shape vs A4 | within 15% | 2–15% |
+| Share of the photo | at least 1% | 1.8–9.6% |
+| Whiteness | brightness ≥ 0.65, saturation ≤ 0.15 | 0.75–0.93, 0.02–0.12 |
+| Scale | 4–60 px/cm | 9–21 px/cm |
+| Video only | seen in at least 3 consecutive frames (about 1 s) | — |
+
+On the front-door photos the sheet still passes on photos 2 and 3. Photo 4 is now rejected: its shape was 15.04% off, just past the limit. Wall posters and small white patches no longer pass.
+
+### 2. A job stuck in "running"
+A worker stopped without a trace and its job stayed "running", so the scan never finished. Now:
+- a running job records a heartbeat whenever it calls a model or the image helper;
+- a job with no heartbeat for 5 minutes (`JOB_TIMEOUT_SECONDS`) goes back to the queue, at worker start and every minute after;
+- after 3 attempts (`JOB_MAX_ATTEMPTS`) the job and its scan are marked failed, with the reason.
