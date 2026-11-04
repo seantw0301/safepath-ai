@@ -5,7 +5,7 @@
 Meta Global AI Developer Hackathon 2026 · Indie Developer · Build for Your World
 
 🌐 **Live demo:** https://demo.jxdtw.com/metademo (demo homes are **SIMULATED**: scenes generated with Muse Image, scale assumed)
-🎬 **Demo video:** [docs/demo-provisional.mp4](docs/demo-provisional.mp4) · 📄 **Sample subsidy draft:** [docs/demo-subsidy-draft.pdf](docs/demo-subsidy-draft.pdf)
+🎬 **Demo video (2:49):** https://youtu.be/L1akx5FGETA · 📄 **Sample subsidy draft:** [docs/demo-subsidy-draft.pdf](docs/demo-subsidy-draft.pdf)
 
 ## 💡 What it is
 A family films the home with a phone. SafePath finds what blocks the way, measures it, and writes the paperwork for Taiwan's long-term-care home-accessibility subsidy.
